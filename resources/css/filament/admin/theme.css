@@ -1,0 +1,49 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+/*
+ * PUI-UBMA R13 Patrimoine — design tokens extracted from the legacy
+ * Patrimo-BitHack app (see ui-design.md §3). Color palette is registered in
+ * the Panel Provider (->colors()); this file carries the non-color tokens.
+ */
+@theme {
+    /* Plus Jakarta Sans is loaded by the panel's ->font() provider */
+    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+    /* Squared-off radius scale of the old app (2/4/8/12px) — ui-design.md §3 */
+    --radius-xs: 0.125rem;
+    --radius-sm: 0.125rem;
+    --radius-md: 0.25rem;
+    --radius-lg: 0.25rem;
+    --radius-xl: 0.5rem;
+    --radius-2xl: 0.5rem;
+    --radius-3xl: 0.75rem;
+}
+
+/* Teal thin scrollbar, ported from legacy globals.css */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #0d9488 #f0fdf9;
+}
+
+*::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+    background: #f0fdf9;
+    border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: #0d9488;
+    border-radius: 999px;
+    border: 1px solid #f0fdf9;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: #0f766e;
+}

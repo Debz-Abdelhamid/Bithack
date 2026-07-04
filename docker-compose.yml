@@ -1,0 +1,147 @@
+# PUI-UBMA R13 Patrimoine — local/dev stack.
+# Everything runs in Docker; nothing is installed on the host (Claude.md §5).
+# Postgres and Redis are NOT published on host ports — they are only reachable
+# from the internal network (Security.md §9).
+services:
+  app:
+    build:
+      context: ./docker/php
+    volumes:
+      - .:/var/www/html
+      # vendor/ and node_modules/ live in named Linux volumes instead of the
+      # Windows bind mount — they account for ~90% of per-request file stats,
+      # and 9p/gRPC-FUSE latency (plus OneDrive/Defender scanning) makes each
+      # request take 15-35s otherwise. Composer/npm run inside the container
+      # and populate the volumes; the host copies (if any) are shadowed/unused.
+      - vendor:/var/www/html/vendor
+      - node_modules:/var/www/html/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # Queued work (broadcast events, notifications, later SLA jobs) — Redis driver.
+  queue:
+    build:
+      context: ./docker/php
+    command: ["php", "artisan", "queue:work", "--tries=3", "--backoff=5", "--max-time=3600"]
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+      - node_modules:/var/www/html/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # Laravel Reverb websocket server (realtime notifications, Pusher protocol).
+  # Published on loopback only; browsers connect to ws://localhost:8081.
+  reverb:
+    build:
+      context: ./docker/php
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+      - node_modules:/var/www/html/node_modules
+    ports:
+      - "127.0.0.1:8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # Daily pg_dump into ./storage/backups (Security.md §7 — a patrimoine
+  # registry losing data is an institutional risk). Restore procedure in
+  # README; keeps 7 daily / 4 weekly / 6 monthly dumps.
+  backup:
+    image: prodrigestivill/postgres-backup-local:16-alpine
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${DB_DATABASE:-patrimo}
+      POSTGRES_USER: ${DB_USERNAME:-patrimo}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: "7"
+      BACKUP_KEEP_WEEKS: "4"
+      BACKUP_KEEP_MONTHS: "6"
+      HEALTHCHECK_PORT: "8080"
+    volumes:
+      - ./storage/backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # Local mail catcher — verification/reset emails land here, never leave the
+  # machine. Web UI: http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:8025:8025"
+    networks:
+      - internal
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - internal
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-patrimo}
+      POSTGRES_USER: ${DB_USERNAME:-patrimo}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-patrimo} -d ${DB_DATABASE:-patrimo}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - internal
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - internal
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  vendor:
+  node_modules:
+
+networks:
+  internal:

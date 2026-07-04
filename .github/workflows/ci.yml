@@ -1,0 +1,108 @@
+# PUI-UBMA R13 Patrimoine — CI gate (Claude.md §7: pint + phpstan + pest must pass;
+# Security.md §10: composer/npm audit fail the build on high/critical findings).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    name: Pint · Larastan · Pest · Audits · Vite build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, pgsql, redis, zip, intl, bcmath, gd, exif, pcntl
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Composer audit
+        run: composer audit
+
+      - name: Pint (code style)
+        run: ./vendor/bin/pint --test
+
+      - name: Larastan (static analysis)
+        run: ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+      - name: Prepare test environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Pest (tests)
+        run: ./vendor/bin/pest
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: npm audit (high/critical)
+        run: npm audit --audit-level=high
+
+      - name: Build assets (includes Filament theme)
+        run: npm run build
+
+  # Same test suite against real PostgreSQL — catches pg-only behavior
+  # (e.g. JSON operators on text columns) that sqlite silently tolerates.
+  tests-postgres:
+    name: Pest on PostgreSQL
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: patrimo_test
+          POSTGRES_USER: patrimo
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U patrimo"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: patrimo_test
+      DB_USERNAME: patrimo
+      DB_PASSWORD: secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, pgsql, redis, zip, intl, bcmath, gd, exif, pcntl
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare test environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Pest (PostgreSQL)
+        run: ./vendor/bin/pest
