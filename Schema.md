@@ -134,12 +134,17 @@ integration points it references (R7 achats, R9 calendrier, R10 finances).
 |---|---|---|
 | id | bigint pk | |
 | local_id | fk → locals | |
-| requested_by_user_id | fk → users | Enseignant only (booking-initiator role — policy 2026-07-04); recurring course slots supported |
-| purpose | string | |
+| requested_by_user_id | fk → users | Enseignant only (booking-initiator role — policy 2026-07-04); recurring course slots supported. **Requester name/faculty always come from this FK — never typed into the form** |
+| module_name | string, nullable | *(added 2026-07-05, owner requirement)* course/module being taught — required by the form for course bookings |
+| level | string, nullable | L1/L2/L3/M1/M2/Doctorate/Other (PHP enum) — required by the form for course bookings |
+| department | string, nullable | free text for now; `TODO(confirm)`: becomes a FK when the R9 academic referential (departments/specialities) exists |
+| student_group | string, nullable | e.g. "Groupe 3", optional |
+| attendees_count | smallint, nullable | validated ≤ `locals.capacity` at request time |
+| purpose | string, nullable | for non-course bookings (meetings, defenses…) |
 | start_at / end_at | timestamp | indexed together for overlap checks |
 | recurring_rule | string, nullable | RRULE-style, for teachers' weekly course slots |
 | status | enum: `pending, confirmed, rejected, cancelled` | |
-| approved_by_user_id | fk → users, nullable | |
+| approved_by_user_id | fk → users, nullable | the N2 of the **room's** faculty (routing rule 2026-07-05) |
 | external_calendar_ref | string, nullable | **lien R9** calendrier partagé |
 
 Add a DB‑level exclusion constraint (or app‑level check) preventing overlapping **confirmed**

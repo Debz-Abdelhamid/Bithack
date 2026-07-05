@@ -64,6 +64,11 @@ Security gate and Performance gate described there.
 - **Teachers search/request campus‑wide** — their own `faculty_id` never filters the catalog
   (affiliation metadata only). **Approval routes to the N2 of the ROOM's faculty** (via its
   building), not the requester's faculty. *(Clarified 2026‑07‑05, see `Security.md` §3.)*
+- **Request form fields (owner requirement 2026‑07‑05):** requester name/faculty shown
+  read‑only from the authenticated account (never typed); module name + level (L1…Doctorate)
+  required for course bookings; department (free text until R9); optional student group;
+  expected attendees **validated against room capacity**; date/time or weekly recurrence;
+  optional purpose/notes for non‑course bookings. See `Schema.md` §2.7.
 - Rate limit the booking endpoint to prevent slot‑spamming.
 - Realtime notifications (database + broadcast, queued): requester notified when their
   reservation is confirmed/rejected; approver (N2/delegate) notified of new pending requests.
