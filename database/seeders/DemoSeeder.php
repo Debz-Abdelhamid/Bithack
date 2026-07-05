@@ -2,8 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Enums\BuildingStatus;
+use App\Enums\LocalStatus;
+use App\Enums\LocalType;
 use App\Enums\ServiceType;
+use App\Models\Building;
 use App\Models\Faculty;
+use App\Models\Local;
 use App\Models\Service;
 use App\Models\User;
 use App\Support\RoleName;
@@ -60,6 +65,59 @@ class DemoSeeder extends Seeder
             );
 
             $user->syncRoles([$role]);
+        }
+
+        $this->seedCampus($technology, $sciences);
+    }
+
+    /**
+     * Demo buildings clustered around the real UBMA campus center used by the
+     * map (36.8133517, 7.7198301) — names/coords are obviously fake.
+     */
+    private function seedCampus(Faculty $technology, Faculty $sciences): void
+    {
+        $buildings = [
+            ['BAT-A', 'Building A (demo)', $technology->id, 36.8140, 7.7205, [
+                ['A-101', 'Amphi A1', LocalType::Amphi, 0, 250],
+                ['A-102', 'Classroom A2', LocalType::SalleCours, 1, 60],
+                ['A-LAB1', 'Networks Lab', LocalType::Labo, 2, 30],
+            ]],
+            ['BAT-B', 'Building B (demo)', $sciences->id, 36.8128, 7.7188, [
+                ['B-201', 'Amphi B1', LocalType::Amphi, 0, 180],
+                ['B-202', 'Chemistry Lab', LocalType::Labo, 1, 24],
+            ]],
+            ['BIB-C', 'Central Library (demo)', null, 36.8134, 7.7215, [
+                ['C-301', 'Reading Room', LocalType::SalleCours, 0, 120],
+                ['C-302', 'Meeting Room C1', LocalType::SalleReunion, 1, 16],
+            ]],
+        ];
+
+        foreach ($buildings as [$code, $name, $facultyId, $lat, $lng, $locals]) {
+            $building = Building::query()->firstOrCreate(
+                ['code' => $code],
+                [
+                    'faculty_id' => $facultyId,
+                    'name' => $name,
+                    'campus' => 'Main Campus (demo)',
+                    'latitude' => $lat,
+                    'longitude' => $lng,
+                    'status' => BuildingStatus::Active,
+                ],
+            );
+
+            foreach ($locals as [$localCode, $localName, $type, $floor, $capacity]) {
+                Local::query()->firstOrCreate(
+                    ['code' => $localCode],
+                    [
+                        'building_id' => $building->id,
+                        'name' => $localName,
+                        'type' => $type,
+                        'floor' => $floor,
+                        'capacity' => $capacity,
+                        'status' => LocalStatus::Available,
+                    ],
+                );
+            }
         }
     }
 }

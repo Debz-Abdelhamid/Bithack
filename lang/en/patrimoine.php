@@ -7,6 +7,7 @@ return [
     'nav' => [
         'administration' => 'Administration',
         'referentiel' => 'Reference data',
+        'patrimoine' => 'Facilities',
     ],
 
     'resources' => [
@@ -21,6 +22,14 @@ return [
         'service' => [
             'label' => 'Service',
             'plural' => 'Services',
+        ],
+        'building' => [
+            'label' => 'Building',
+            'plural' => 'Buildings',
+        ],
+        'local' => [
+            'label' => 'Room',
+            'plural' => 'Rooms',
         ],
     ],
 
@@ -41,12 +50,64 @@ return [
         'is_active_help' => 'Deactivated accounts are locked out of the panel immediately, without deleting any data.',
         'created_at' => 'Created at',
         'updated_at' => 'Updated at',
+        'building' => 'Building',
+        'campus' => 'Campus',
+        'address' => 'Address',
+        'floors_count' => 'Floors',
+        'latitude' => 'Latitude',
+        'longitude' => 'Longitude',
+        'floor' => 'Floor',
+        'capacity' => 'Capacity',
+        'surface_m2' => 'Surface (m²)',
+        'locals_count' => 'Rooms',
+        'on_map' => 'On map',
+        'central_shared' => 'Central / shared',
+        'status' => 'Status',
+        'building_faculty_help' => 'Leave empty for central or shared buildings (library, administration…). Faculty buildings scope what N2 sees and drive reservation approval routing.',
+        'local_responsible_help' => 'Day-to-day contact for this room (any user, no special role).',
+        'coordinates_help' => 'Fill manually, or use "Set position on map" from the Campus map page.',
     ],
 
     'service_types' => [
         'service' => 'Service',
         'labo' => 'Laboratory',
         'bureau' => 'Office',
+    ],
+
+    'building_statuses' => [
+        'active' => 'Active',
+        'under_renovation' => 'Under renovation',
+        'decommissioned' => 'Decommissioned',
+    ],
+
+    'local_types' => [
+        'bureau' => 'Office',
+        'salle_cours' => 'Classroom',
+        'amphi' => 'Amphitheater',
+        'labo' => 'Laboratory',
+        'atelier' => 'Workshop',
+        'entrepot' => 'Warehouse',
+        'salle_reunion' => 'Meeting room',
+        'autre' => 'Other',
+    ],
+
+    'local_statuses' => [
+        'available' => 'Available',
+        'occupied' => 'Occupied',
+        'under_maintenance' => 'Under maintenance',
+        'closed' => 'Closed',
+    ],
+
+    'campus_map' => [
+        'title' => 'Campus map',
+        'rooms' => 'rooms',
+        'seats' => 'seats',
+        'no_rooms' => 'No rooms registered in this building yet.',
+        'select_hint' => 'Click a building marker on the map to see its rooms.',
+        'set_position' => 'Set position on map',
+        'picking_hint' => 'Click anywhere on the map to place this building.',
+        'cancel' => 'Cancel',
+        'position_saved' => 'Building position saved.',
     ],
 
     'roles' => [

@@ -57,6 +57,7 @@ integration points it references (R7 achats, R9 calendrier, R10 finances).
 | Column | Type | Notes |
 |---|---|---|
 | id | bigint pk | |
+| faculty_id | fk → faculties, nullable | *(added in Phase 2, 2026‑07‑05 — this page originally omitted it, but N2 faculty scoping (`Security.md` §3), Phase 5 approval routing by the room's faculty, and the legacy map's data shape all require it; NULL = central/shared building)* |
 | code | string, unique | e.g. `BAT-A` |
 | name | string | |
 | campus | string, nullable | supports multi‑site UBMA |

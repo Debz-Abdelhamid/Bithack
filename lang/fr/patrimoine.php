@@ -7,6 +7,7 @@ return [
     'nav' => [
         'administration' => 'Administration',
         'referentiel' => 'Référentiel',
+        'patrimoine' => 'Patrimoine',
     ],
 
     'resources' => [
@@ -21,6 +22,14 @@ return [
         'service' => [
             'label' => 'Service',
             'plural' => 'Services',
+        ],
+        'building' => [
+            'label' => 'Bâtiment',
+            'plural' => 'Bâtiments',
+        ],
+        'local' => [
+            'label' => 'Local',
+            'plural' => 'Locaux',
         ],
     ],
 
@@ -41,12 +50,64 @@ return [
         'is_active_help' => 'Un compte désactivé est immédiatement bloqué, sans suppression de données.',
         'created_at' => 'Créé le',
         'updated_at' => 'Modifié le',
+        'building' => 'Bâtiment',
+        'campus' => 'Campus',
+        'address' => 'Adresse',
+        'floors_count' => 'Étages',
+        'latitude' => 'Latitude',
+        'longitude' => 'Longitude',
+        'floor' => 'Étage',
+        'capacity' => 'Capacité',
+        'surface_m2' => 'Surface (m²)',
+        'locals_count' => 'Locaux',
+        'on_map' => 'Sur la carte',
+        'central_shared' => 'Central / partagé',
+        'status' => 'Statut',
+        'building_faculty_help' => 'Laisser vide pour les bâtiments centraux ou partagés (bibliothèque, administration…). Les bâtiments de faculté délimitent la visibilité N2 et le routage des approbations de réservation.',
+        'local_responsible_help' => 'Contact au quotidien pour ce local (tout utilisateur, aucun rôle particulier).',
+        'coordinates_help' => 'Saisir manuellement, ou utiliser « Positionner sur la carte » depuis la page Cartographie campus.',
     ],
 
     'service_types' => [
         'service' => 'Service',
         'labo' => 'Laboratoire',
         'bureau' => 'Bureau',
+    ],
+
+    'building_statuses' => [
+        'active' => 'Actif',
+        'under_renovation' => 'En rénovation',
+        'decommissioned' => 'Désaffecté',
+    ],
+
+    'local_types' => [
+        'bureau' => 'Bureau',
+        'salle_cours' => 'Salle de cours',
+        'amphi' => 'Amphithéâtre',
+        'labo' => 'Laboratoire',
+        'atelier' => 'Atelier',
+        'entrepot' => 'Entrepôt',
+        'salle_reunion' => 'Salle de réunion',
+        'autre' => 'Autre',
+    ],
+
+    'local_statuses' => [
+        'available' => 'Disponible',
+        'occupied' => 'Occupé',
+        'under_maintenance' => 'En maintenance',
+        'closed' => 'Fermé',
+    ],
+
+    'campus_map' => [
+        'title' => 'Cartographie campus',
+        'rooms' => 'locaux',
+        'seats' => 'places',
+        'no_rooms' => 'Aucun local enregistré dans ce bâtiment.',
+        'select_hint' => 'Cliquez sur un bâtiment de la carte pour voir ses locaux.',
+        'set_position' => 'Positionner sur la carte',
+        'picking_hint' => 'Cliquez n\'importe où sur la carte pour placer ce bâtiment.',
+        'cancel' => 'Annuler',
+        'position_saved' => 'Position du bâtiment enregistrée.',
     ],
 
     'roles' => [

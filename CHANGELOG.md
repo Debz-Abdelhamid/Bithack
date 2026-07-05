@@ -3,6 +3,34 @@
 All notable changes to the PUI-UBMA R13 Patrimoine module.
 Format: one entry per phase (see `Phases.md`), Conventional-Commit-style categories.
 
+## Phase 2 — Buildings & Rooms + campus map port (2026-07-05)
+
+### Added
+- `buildings` (+ `faculty_id`, a documented Schema.md divergence — required by N2 scoping,
+  Phase 5 approval routing and the map's data contract; NULL = central/shared) and `locals`
+  tables, enums, factories, and full Filament resources (Building with a Rooms relation
+  manager; Rooms standalone), all eager-loaded/counted per Schema.md §5.
+- **FacultyScope** (Security.md §3): faculty-bound users (N2) see only their faculty's
+  buildings/rooms plus shared ones via an Eloquent global scope; A3/N3/admin unscoped;
+  ungranted `ViewAcrossFaculties` escape hatch; the campus map and future room catalog
+  deliberately bypass it (public campus, campus-wide teacher booking).
+- **Campus map ported as-is** from Patrimo-BitHack (ui-design.md §6): `maplibre-gl` v5
+  (React wrapper dropped), OpenFreeMap bright tiles, UBMA center @ zoom 17 / pitch 45,
+  same controls, same custom SVG flag markers + hover tooltips + selected state, rooms
+  side panel on click, and the crosshair pick-a-location mode — wired through the Building
+  update policy (never a raw write).
+- `PermissionSeeder`: matrix-baseline grants (A3 full Building/Local CRUD; N2/N3 read-only;
+  campus map viewable by every role — the physical campus is public).
+- Demo campus: 3 buildings (Technology, Sciences, shared library) with 7 rooms around the
+  real UBMA coordinates.
+- 10 new Pest tests (59 total): A3 create building+room, N2 scoping (list + 404 on foreign
+  detail + create denial), A3 unscoped, tout_utilisateur resource denial vs map access,
+  teacher full-campus map payload, picking denied (teacher) / allowed+persisted (A3).
+
+### Notes
+- `migrate:fresh --seed` was run as part of the DoD gate — local demo DB reset (demo accounts
+  re-seeded; self-registered accounts/MFA setups need re-creating).
+
 ## Hardening sprint — gap closure before Phase 2 (2026-07-05)
 
 ### Added
