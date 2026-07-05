@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Locals;
 use App\Filament\Resources\Locals\Pages\CreateLocal;
 use App\Filament\Resources\Locals\Pages\EditLocal;
 use App\Filament\Resources\Locals\Pages\ListLocals;
+use App\Filament\Resources\Locals\RelationManagers\AssignmentsRelationManager;
 use App\Filament\Resources\Locals\Schemas\LocalForm;
 use App\Filament\Resources\Locals\Tables\LocalsTable;
 use App\Models\Local;
@@ -47,7 +48,9 @@ class LocalResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            AssignmentsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

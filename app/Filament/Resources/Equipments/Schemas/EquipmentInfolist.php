@@ -89,6 +89,29 @@ class EquipmentInfolist
                         TextEntry::make('purchaseReference.external_purchase_id')
                             ->label(__('patrimoine.fields.purchase_reference'))
                             ->placeholder('—'),
+                        TextEntry::make('current_assignment')
+                            ->label(__('patrimoine.fields.current_assignment'))
+                            ->state(function (Equipment $record): ?string {
+                                $active = $record->activeAssignment();
+
+                                if ($active === null) {
+                                    return null;
+                                }
+
+                                $target = collect([
+                                    $active->service?->name,
+                                    $active->assignedTo?->name,
+                                ])->filter()->implode(' · ');
+
+                                if ($target === '') {
+                                    $target = (string) $active->local?->code;
+                                }
+
+                                return trim($target.' — '.__('patrimoine.fields.since', [
+                                    'date' => $active->start_date->format('Y-m-d'),
+                                ]));
+                            })
+                            ->placeholder(__('patrimoine.fields.no_active_assignment')),
                     ]),
                 Section::make(__('patrimoine.sections.qr_code'))
                     ->components([

@@ -6,6 +6,7 @@ use App\Filament\Resources\Equipments\Pages\CreateEquipment;
 use App\Filament\Resources\Equipments\Pages\EditEquipment;
 use App\Filament\Resources\Equipments\Pages\ListEquipments;
 use App\Filament\Resources\Equipments\Pages\ViewEquipment;
+use App\Filament\Resources\Equipments\RelationManagers\AssignmentsRelationManager;
 use App\Filament\Resources\Equipments\Schemas\EquipmentForm;
 use App\Filament\Resources\Equipments\Schemas\EquipmentInfolist;
 use App\Filament\Resources\Equipments\Tables\EquipmentsTable;
@@ -54,7 +55,9 @@ class EquipmentResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            AssignmentsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

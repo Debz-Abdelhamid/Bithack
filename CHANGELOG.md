@@ -3,6 +3,40 @@
 All notable changes to the PUI-UBMA R13 Patrimoine module.
 Format: one entry per phase (see `Phases.md`), Conventional-Commit-style categories.
 
+## Phase 4 — Affectations (2026-07-06)
+
+### Added
+- `assignments` table (Schema.md §2.6): subject = equipment, whole room, or equipment moving
+  into a room (permissive reading of §1's "affectation d'un bien à un service/local/personne";
+  `TODO(confirm)` noted in Schema.md); targets = service and/or responsible person;
+  `assigned_by_user_id` always taken from the authenticated session, never form input.
+  Restrict-on-delete FKs, active-lookup indexes, and a Postgres CHECK constraint on the
+  subject (verified rejecting subject-less rows).
+- **AssignmentObserver** (Étape 2 / Phase 4 DoD): a new active assignment closes the previous
+  active one on the same subject (end_date = new start — closed one by one so each closure is
+  audit-logged, never deleted), and an equipment assignment carrying a destination room syncs
+  `equipments.local_id` — "assigning an asset updates its current location/service and
+  preserves full history".
+- **AssignmentResource** (list w/ active/service filters, create, edit) + **Revoke** action
+  (end_date = today, policy-checked, confirmation required) shared with the relation managers.
+- **History on detail pages**: AssignmentsRelationManager on the Equipment view/edit page
+  (the old app's "Affect" flow — equipment bound automatically, optional destination room)
+  and a read-only variant on the Room page (whole-room + equipment-in-room history);
+  "Current assignment" entry on the Equipment infolist.
+- **RBAC**: A3 full CRUD; **N2 create/update within their faculty** (matrix: "approve for
+  their faculty: affectations") — server-side scoped-exists rules block posting foreign
+  asset ids even with a forged request; deletion stays A3-only (history preservation);
+  N3 read-only; FacultyScope extended to Assignment via its subject.
+- Demo assignment (desktop computer → Computer Science Laboratory, idempotent).
+- 12 new Pest tests (93 total): create + assigner recorded, auto-close history, location
+  sync, subject/target validation, N2 own-faculty create, N2 foreign-asset denial (server
+  side), N2 list scoping + foreign 404, delete A3-only, tout_utilisateur denied, revoke
+  closes-not-deletes, equipment-page history + current-assignment display.
+
+### Notes
+- Validation gotcha encoded: closure rules on nullable fields are skipped when empty, so the
+  target-completeness rule lives on `start_date` (always validated).
+
 ## Phase 3 — Inventory: Equipments + QR (2026-07-05)
 
 ### Added

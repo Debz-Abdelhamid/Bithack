@@ -8,6 +8,7 @@ use App\Enums\EquipmentStatus;
 use App\Enums\LocalStatus;
 use App\Enums\LocalType;
 use App\Enums\ServiceType;
+use App\Models\Assignment;
 use App\Models\Building;
 use App\Models\Equipment;
 use App\Models\Faculty;
@@ -73,6 +74,7 @@ class DemoSeeder extends Seeder
 
         $this->seedCampus($technology, $sciences);
         $this->seedEquipments();
+        $this->seedAssignments();
     }
 
     /**
@@ -162,5 +164,28 @@ class DemoSeeder extends Seeder
                 ],
             );
         }
+    }
+
+    private function seedAssignments(): void
+    {
+        $desktop = Equipment::query()->where('inventory_code', 'UBMA-2025-00001')->first();
+        $lab = Service::query()->where('name', 'Computer Science Laboratory (demo)')->first();
+        $a3 = User::query()->where('email', 'a3@demo.ubma.dz')->first();
+
+        if ($desktop === null || $lab === null || $a3 === null) {
+            return;
+        }
+
+        Assignment::query()->firstOrCreate(
+            [
+                'equipment_id' => $desktop->id,
+                'service_id' => $lab->id,
+                'start_date' => '2025-10-01',
+            ],
+            [
+                'assigned_by_user_id' => $a3->id,
+                'notes' => 'Demo assignment.',
+            ],
+        );
     }
 }

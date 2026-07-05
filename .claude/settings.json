@@ -175,7 +175,13 @@
       "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:8080/report/70b71d6b-bce2-4f00-be47-e06272fc3688\" -UseBasicParsing; \"STATUS: $\\($r.StatusCode\\)\"; if \\($r.Content -match '<h1>\\([^<]+\\)</h1>'\\) { \"H1: $\\($Matches[1]\\)\" }; if \\($r.Content -match 'UBMA-\\\\d{4}-\\\\d{5}'\\) { \"CODE: $\\($Matches[0]\\)\" }; if \\($r.Content -match 'badge badge-\\(\\\\w+\\)'\\) { \"BADGE: $\\($Matches[1]\\)\" })",
       "PowerShell(try { Invoke-WebRequest -Uri \"http://localhost:8080/report/00000000-0000-4000-8000-000000000000\" -UseBasicParsing } catch { \"UNKNOWN TOKEN STATUS: $\\($_.Exception.Response.StatusCode.value__\\)\" }; try { Invoke-WebRequest -Uri \"http://localhost:8080/report/not-a-uuid\" -UseBasicParsing } catch { \"JUNK STATUS: $\\($_.Exception.Response.StatusCode.value__\\)\" })",
       "PowerShell($codes = @\\(\\); foreach \\($i in 1..11\\) { try { $r = Invoke-WebRequest -Uri \"http://localhost:8080/report/70b71d6b-bce2-4f00-be47-e06272fc3688\" -UseBasicParsing; $codes += $r.StatusCode } catch { $codes += $_.Exception.Response.StatusCode.value__ } }; \"SEQUENCE: $\\($codes -join ','\\)\")",
-      "PowerShell(docker compose exec app composer audit)"
+      "PowerShell(docker compose exec app composer audit)",
+      "PowerShell(git commit -F \"C:\\\\Users\\\\kheir\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-kheir-OneDrive-Desktop-Patrimo\\\\90a83ae2-aac8-4801-b2da-3b2fb2e00c64\\\\scratchpad\\\\commit-msg.txt\")",
+      "PowerShell(git push origin main)",
+      "PowerShell(gh run watch --repo Debz-Abdelhamid/patrimo --exit-status)",
+      "PowerShell(docker compose restart queue)",
+      "PowerShell(gh run list --repo Debz-Abdelhamid/patrimo --commit 6c3fe71 --json databaseId,status,workflowName,conclusion)",
+      "PowerShell(gh run list --repo Debz-Abdelhamid/patrimo --limit 3)"
     ]
   }
 }

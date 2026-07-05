@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -89,6 +90,26 @@ class Equipment extends Model
     public function qrCode(): MorphOne
     {
         return $this->morphOne(QrCode::class, 'trackable');
+    }
+
+    /**
+     * @return HasMany<Assignment, $this>
+     */
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(Assignment::class);
+    }
+
+    /**
+     * At most one active assignment per subject — the AssignmentObserver
+     * closes the previous one whenever a new active assignment is created.
+     */
+    public function activeAssignment(): ?Assignment
+    {
+        return $this->assignments()
+            ->whereNull('end_date')
+            ->latest('start_date')
+            ->first();
     }
 
     public function getActivitylogOptions(): LogOptions

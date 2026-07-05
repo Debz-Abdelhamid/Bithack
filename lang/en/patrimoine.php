@@ -39,6 +39,10 @@ return [
             'label' => 'Purchase reference',
             'plural' => 'Purchase references',
         ],
+        'assignment' => [
+            'label' => 'Assignment',
+            'plural' => 'Assignments',
+        ],
     ],
 
     'sections' => [
@@ -46,6 +50,15 @@ return [
         'details' => 'Details',
         'location_acquisition' => 'Location & acquisition',
         'qr_code' => 'QR code',
+        'assignment_subject' => 'What is assigned',
+        'assignment_target' => 'Assigned to',
+        'assignment_period' => 'Period',
+    ],
+
+    'validation' => [
+        'subject_required' => 'Select an equipment, a room, or both (equipment moving into a room).',
+        'target_required' => 'An assignment needs a destination room, a service, or a responsible person.',
+        'out_of_scope' => 'This record is outside your faculty scope.',
     ],
 
     'fields' => [
@@ -105,6 +118,23 @@ return [
         'supplier' => 'Supplier',
         'order_date' => 'Order date',
         'label_printed' => 'Label printed',
+        'assignment_subject' => 'Subject',
+        'assignment_subject_help' => 'Pick an equipment, a whole room, or both — selecting both moves the equipment into that room.',
+        'assignment_local_help' => 'The room being assigned — or, when an equipment is selected, the room it moves to.',
+        'assignment_destination_help' => 'Optional destination room — the equipment is moved there when the assignment is saved.',
+        'assigned_to' => 'Responsible person',
+        'assigned_to_help' => 'Individual responsible, if applicable (any user).',
+        'assigned_by' => 'Assigned by',
+        'start_date' => 'Start date',
+        'end_date' => 'End date',
+        'end_date_help' => 'Leave empty for an active assignment. Set a date only when backfilling history.',
+        'assignment_active' => 'Active',
+        'revoke' => 'Revoke',
+        'assign' => 'Assign',
+        'whole_room' => 'Whole room',
+        'current_assignment' => 'Current assignment',
+        'no_active_assignment' => 'No active assignment',
+        'since' => 'since :date',
     ],
 
     'service_types' => [

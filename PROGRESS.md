@@ -6,7 +6,7 @@
 > gate passed and the project owner said go.
 
 **Repo:** https://github.com/Debz-Abdelhamid/patrimo (private, branch `main`, CI must stay green)
-**Last update:** 2026-07-05 — Phases 0–3 complete · next: **Phase 4 (Affectations)** — waiting for owner go
+**Last update:** 2026-07-06 — Phases 0–4 complete · next: **Phase 5 (Room reservations)** — waiting for owner go
 
 ---
 
@@ -19,7 +19,9 @@
 | 2 — Buildings & Rooms + map | ✅ | `buildings` (+`faculty_id` — documented Schema.md §2.1 divergence; NULL = central/shared) & `locals` with enums/factories/resources (Building has a Rooms relation manager). **FacultyScope** global scope: N2 sees own faculty + shared only (list, search, direct URL → 404); A3/N3 unscoped; `ViewAcrossFaculties` escape hatch exists ungranted. **Campus map ported as-is**: `maplibre-gl` v5 vanilla (React wrapper dropped), OpenFreeMap bright tiles, UBMA center zoom 17 / pitch 45, same SVG flag markers/tooltips/selection, rooms side panel, crosshair pick-a-location **through the Building update policy**. `PermissionSeeder` = matrix baseline (A3 full CRUD, N2/N3 read-only, map viewable by all roles). |
 | 3 — Equipments + QR | ✅ | `equipments` (§2.3, `sub_category` relaxed nullable — documented) + `qr_codes` (**opaque UUID token**, unique morph pair) + `purchase_references` R7 stub. `EquipmentObserver`: auto inventory code `UBMA-YYYY-NNNNN` (manual entry kept; unique index = hard guarantee) + QR row on create, cleanup on delete. Equipment resource (filters, view page w/ 256px QR SVG block via simple-qrcode). **Print label**: A3-only (`PrintLabel:Equipment`), new tab → A4 → auto print, marks printed + audit (documented GET side effect). **Public lookup `GET /report/{token}`** — same URL contract as legacy so printed labels survive Phase 6; data-minimized card (no value/serial/notes/photo); UUID route constraint; Redis `qr-lookup` limiter (30/min/IP + 10/min/token+IP) verified live. FacultyScope → Equipment via room→building (unplaced = central, visible). N2/N3 read-only, tout_utilisateur denied. |
 
-**Tests:** 81 green (sqlite + pgsql in CI). **English-first UI** (owner decision; `lang/en` primary, `lang/fr` maintained). **Timezone:** Africa/Algiers.
+| 4 — Affectations | ✅ | `assignments` (§2.6): subject = equipment / whole room / equipment→room (permissive §1 reading, `TODO(confirm)` in Schema.md); targets service/person; `assigned_by` from session only; pg CHECK on subject. **AssignmentObserver**: new active assignment auto-closes the previous one (audit-logged, never deleted) + destination room syncs `equipments.local_id` (DoD: "updates current location/service, preserves history"). Resource + **Revoke** action (end today, policy-checked); history relation managers on Equipment (create w/ auto-bound subject, old "Affect" flow) + Room (read-only); current assignment on the Equipment infolist. RBAC: A3 full; **N2 create/update own faculty** (scoped-exists rules beat forged ids); delete A3-only; N3 read. |
+
+**Tests:** 93 green (sqlite + pgsql in CI). **English-first UI** (owner decision; `lang/en` primary, `lang/fr` maintained). **Timezone:** Africa/Algiers.
 
 ## Decision log (owner decisions, dated — do not re-litigate)
 
@@ -37,6 +39,7 @@
 3. Definitive registration domain list (student subdomains?) — `PATRIMO_REGISTRATION_DOMAINS`.
 4. Department field → FK when R9 academic referential exists.
 5. Phase 5 defaults awaiting confirmation: recurrence ends at teacher-picked date (≤ ~4 months); N2 sees all conflicting pending requests, confirming one auto-rejects overlaps.
+6. Affectation semantics (Phase 4, Schema.md §2.6): an equipment assignment with a destination room also moves the asset (`equipments.local_id` synced) — permissive reading of §1; confirm whether affectation and physical relocation should be strictly separate operations instead.
 
 ## Operational notes
 
@@ -50,7 +53,11 @@
 
 ## Next
 
-**Phase 4 — Affectations** (Phases.md): `assignments` table + Resource scoped by A3/N2
-permissions; assignment history view on the equipment detail page (who had it, when);
-assigning updates the asset's current location/service while preserving full history.
-*(Owner may instead say "go reservations" to pull Phase 5 forward.)* **Waiting for owner go.**
+**Phase 5 — Room reservations** (Phases.md): `room_reservations` + overlap prevention
+(pg exclusion constraint or app-level check), weekly timetable UI (ported grid),
+**Enseignant-only booking** (campus-wide catalog — `FacultyScope` deliberately bypassed),
+approval routed to the **room's** faculty N2, request-form fields per Schema.md §2.7
+(requester read-only, module + level required for course bookings, attendees ≤ capacity),
+booking-endpoint rate limit, realtime notifications (requester + approver). Open defaults
+to confirm before/while building: recurrence end rule and conflicting-pending handling
+(PROGRESS "Open questions" #5). **Waiting for owner go.**

@@ -28,7 +28,7 @@ class PermissionSeeder extends Seeder
 
         $fullPatrimoine = [];
 
-        foreach (['Building', 'Local', 'Equipment', 'PurchaseReference'] as $model) {
+        foreach (['Building', 'Local', 'Equipment', 'PurchaseReference', 'Assignment'] as $model) {
             foreach (self::RESOURCE_METHODS as $method) {
                 $fullPatrimoine[] = Permission::findOrCreate("{$method}:{$model}", 'web')->name;
             }
@@ -49,7 +49,13 @@ class PermissionSeeder extends Seeder
             'ViewAny:Local', 'View:Local',
             'ViewAny:Equipment', 'View:Equipment',
             'ViewAny:PurchaseReference', 'View:PurchaseReference',
+            'ViewAny:Assignment', 'View:Assignment',
         ];
+
+        // N2 administers affectations inside their faculty (matrix:
+        // "approve for their faculty: affectations") — create + update
+        // (revoke/correct), never delete: history stays A3's call.
+        $n2Assignments = ['Create:Assignment', 'Update:Assignment'];
 
         // A3 — full CRUD on the inventory referential (matrix: "full CRUD inventory").
         Role::findByName(RoleName::GESTIONNAIRE_PATRIMOINE, 'web')
@@ -57,7 +63,7 @@ class PermissionSeeder extends Seeder
 
         // N2 — sees their faculty's patrimoine (FacultyScope narrows the queries).
         Role::findByName(RoleName::RESPONSABLE_FACULTE, 'web')
-            ->givePermissionTo([...$readOnlyPatrimoine, $campusMap]);
+            ->givePermissionTo([...$readOnlyPatrimoine, ...$n2Assignments, $campusMap]);
 
         // N3 — university-wide read visibility.
         Role::findByName(RoleName::RECTORAT, 'web')

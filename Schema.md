@@ -121,7 +121,7 @@ integration points it references (R7 achats, R9 calendrier, R10 finances).
 |---|---|---|
 | id | bigint pk | |
 | equipment_id | fk → equipments, nullable | either equipment... |
-| local_id | fk → locals, nullable | ...or a whole local is affected — one of the two required |
+| local_id | fk → locals, nullable | ...or a whole local is affected — one of the two required. *(Phase 4, 2026‑07‑06: when **both** are set, the local is the equipment's destination room and `equipments.local_id` is synced on creation — this is the permissive reading of §1's "affectation d'un bien à un service/**local**/personne" and what makes the Phase 4 DoD "updates its current location" implementable. `TODO(confirm)`: whether the university wants affectation and physical relocation strictly separated instead.)* |
 | service_id | fk → services, nullable | |
 | assigned_to_user_id | fk → users, nullable | individual responsible, if applicable |
 | assigned_by_user_id | fk → users | A3 or N2 |

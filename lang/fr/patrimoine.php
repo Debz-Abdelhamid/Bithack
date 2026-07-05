@@ -39,6 +39,10 @@ return [
             'label' => 'Référence achat',
             'plural' => 'Références achat',
         ],
+        'assignment' => [
+            'label' => 'Affectation',
+            'plural' => 'Affectations',
+        ],
     ],
 
     'sections' => [
@@ -46,6 +50,15 @@ return [
         'details' => 'Détails',
         'location_acquisition' => 'Localisation & acquisition',
         'qr_code' => 'Code QR',
+        'assignment_subject' => 'Objet de l\'affectation',
+        'assignment_target' => 'Affecté à',
+        'assignment_period' => 'Période',
+    ],
+
+    'validation' => [
+        'subject_required' => 'Sélectionnez un équipement, un local, ou les deux (équipement déplacé dans un local).',
+        'target_required' => 'Une affectation nécessite un local de destination, un service ou un responsable.',
+        'out_of_scope' => 'Cet enregistrement est hors de votre périmètre de faculté.',
     ],
 
     'fields' => [
@@ -105,6 +118,23 @@ return [
         'supplier' => 'Fournisseur',
         'order_date' => 'Date de commande',
         'label_printed' => 'Étiquette imprimée',
+        'assignment_subject' => 'Objet',
+        'assignment_subject_help' => 'Choisissez un équipement, un local entier, ou les deux — les deux ensemble déplacent l\'équipement dans ce local.',
+        'assignment_local_help' => 'Le local affecté — ou, si un équipement est sélectionné, le local où il est déplacé.',
+        'assignment_destination_help' => 'Local de destination facultatif — l\'équipement y est déplacé à l\'enregistrement.',
+        'assigned_to' => 'Personne responsable',
+        'assigned_to_help' => 'Responsable individuel, le cas échéant (tout utilisateur).',
+        'assigned_by' => 'Affecté par',
+        'start_date' => 'Date de début',
+        'end_date' => 'Date de fin',
+        'end_date_help' => 'Laisser vide pour une affectation active. Ne renseigner que pour reprendre un historique.',
+        'assignment_active' => 'Active',
+        'revoke' => 'Révoquer',
+        'assign' => 'Affecter',
+        'whole_room' => 'Local entier',
+        'current_assignment' => 'Affectation actuelle',
+        'no_active_assignment' => 'Aucune affectation active',
+        'since' => 'depuis le :date',
     ],
 
     'service_types' => [

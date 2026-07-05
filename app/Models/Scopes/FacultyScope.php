@@ -2,6 +2,7 @@
 
 namespace App\Models\Scopes;
 
+use App\Models\Assignment;
 use App\Models\Building;
 use App\Models\Equipment;
 use App\Models\Local;
@@ -64,6 +65,19 @@ class FacultyScope implements Scope
             $builder->where(function (Builder $query) use ($model): void {
                 $query->whereNull($model->qualifyColumn('local_id'))
                     ->orWhereHas('local');
+            });
+
+            return;
+        }
+
+        // An assignment is visible iff its subject is: the nested whereHas
+        // calls re-apply the Equipment/Local branches above automatically.
+        if ($model instanceof Assignment) {
+            $builder->where(function (Builder $query): void {
+                $query->whereHas('equipment')
+                    ->orWhere(function (Builder $inner): void {
+                        $inner->whereNull('equipment_id')->whereHas('local');
+                    });
             });
         }
     }
