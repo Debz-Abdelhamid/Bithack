@@ -108,6 +108,11 @@ return [
         'picking_hint' => 'Cliquez n\'importe où sur la carte pour placer ce bâtiment.',
         'cancel' => 'Annuler',
         'position_saved' => 'Position du bâtiment enregistrée.',
+        'select_building' => 'Sélectionner un bâtiment',
+        'not_placed' => 'non placé',
+        'not_placed_hint' => 'Ce bâtiment n\'a pas encore de position — il n\'apparaît pas sur la carte. Utilisez « Positionner sur la carte » ci-dessous.',
+        'place_reminder_title' => 'Bâtiment non placé sur la carte',
+        'place_reminder_body' => '« :name » n\'a pas encore de coordonnées. Ouvrez la page Cartographie campus, sélectionnez-le dans la liste, puis « Positionner sur la carte ».',
     ],
 
     'roles' => [

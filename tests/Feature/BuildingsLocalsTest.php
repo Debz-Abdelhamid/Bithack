@@ -145,6 +145,40 @@ it('denies teachers the map picking action', function (): void {
         ->assertForbidden();
 });
 
+it('includes unplaced buildings in the map payload so they can be selected and placed', function (): void {
+    $unplaced = Building::factory()->create([
+        'name' => 'Unplaced Annex',
+        'latitude' => null,
+        'longitude' => null,
+    ]);
+
+    $this->actingAs(actingUserWithRole(RoleName::GESTIONNAIRE_PATRIMOINE));
+
+    $payload = Livewire::test(CampusMap::class)->instance()->getBuildingsPayload();
+
+    expect(collect($payload)->firstWhere('id', $unplaced->id))->not->toBeNull();
+});
+
+it('lets A3 place a building that was created without coordinates', function (): void {
+    $unplaced = Building::factory()->create([
+        'latitude' => null,
+        'longitude' => null,
+    ]);
+
+    $this->actingAs(actingUserWithRole(RoleName::GESTIONNAIRE_PATRIMOINE));
+
+    Livewire::test(CampusMap::class)
+        ->call('selectBuildingFromList', $unplaced->id)
+        ->call('startPicking')
+        ->call('setCoordinates', 36.8135001, 7.7200001);
+
+    $unplaced->refresh();
+
+    expect($unplaced->latitude)->not->toBeNull()
+        ->and(round($unplaced->latitude, 4))->toBe(36.8135)
+        ->and(round($unplaced->longitude, 4))->toBe(7.72);
+});
+
 it('lets A3 reposition a building from the map — policy-checked', function (): void {
     $this->actingAs(actingUserWithRole(RoleName::GESTIONNAIRE_PATRIMOINE));
 

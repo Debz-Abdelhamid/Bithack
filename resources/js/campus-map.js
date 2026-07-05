@@ -144,6 +144,22 @@ function initCampusMap(container) {
         map.getCanvas().style.cursor = picking ? 'crosshair' : '';
     });
 
+    // Selection coming from the side-panel dropdown (covers unplaced buildings)
+    window.addEventListener('campus-select-building', (event) => {
+        const detail = event.detail?.[0] ?? event.detail ?? {};
+        const id = Number(detail.id);
+        if (!id) return;
+
+        setSelected(id);
+
+        if (detail.latitude != null && detail.longitude != null) {
+            map.flyTo({
+                center: [detail.longitude, detail.latitude],
+                zoom: Math.max(map.getZoom(), 17),
+            });
+        }
+    });
+
     window.addEventListener('campus-buildings-updated', (event) => {
         const payload = event.detail?.buildings ?? event.detail?.[0]?.buildings;
         if (Array.isArray(payload)) {

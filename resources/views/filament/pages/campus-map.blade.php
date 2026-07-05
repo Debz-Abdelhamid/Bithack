@@ -29,6 +29,25 @@
 
         {{-- Side panel: selected building + rooms (same click-through as the legacy app) --}}
         <div class="space-y-4">
+            {{-- Selector covers ALL buildings — including ones not yet placed on the map --}}
+            <div class="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
+                <label for="campus-building-select" class="mb-1 block text-xs font-medium text-gray-500">
+                    {{ __('patrimoine.campus_map.select_building') }}
+                </label>
+                <select
+                    id="campus-building-select"
+                    class="w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+                    wire:change="selectBuildingFromList($event.target.value)"
+                >
+                    <option value="" @selected($this->selectedBuildingId === null)>—</option>
+                    @foreach ($this->getBuildingsPayload() as $building)
+                        <option value="{{ $building['id'] }}" @selected($this->selectedBuildingId === $building['id'])>
+                            {{ $building['name'] }} ({{ $building['code'] }}){{ $building['latitude'] === null ? ' — '.__('patrimoine.campus_map.not_placed') : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             @if ($selected = $this->getSelectedBuilding())
                 <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
                     <div class="flex items-start justify-between gap-2">
@@ -40,6 +59,12 @@
                         </div>
                         <span class="text-xs text-gray-400">{{ count($selected['rooms']) }} {{ __('patrimoine.campus_map.rooms') }}</span>
                     </div>
+
+                    @unless ($this->selectedBuildingIsPlaced())
+                        <p class="mt-2 rounded-lg bg-warning-50 px-3 py-2 text-xs font-medium text-warning-700 dark:bg-warning-500/10 dark:text-warning-400">
+                            {{ __('patrimoine.campus_map.not_placed_hint') }}
+                        </p>
+                    @endunless
 
                     @if ($this->canEditBuildings())
                         <div class="mt-3">

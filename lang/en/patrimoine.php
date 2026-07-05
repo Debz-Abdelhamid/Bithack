@@ -108,6 +108,11 @@ return [
         'picking_hint' => 'Click anywhere on the map to place this building.',
         'cancel' => 'Cancel',
         'position_saved' => 'Building position saved.',
+        'select_building' => 'Select a building',
+        'not_placed' => 'not placed',
+        'not_placed_hint' => 'This building has no position yet, so it does not appear on the map. Use "Set position on map" below to place it.',
+        'place_reminder_title' => 'Building not placed on the map',
+        'place_reminder_body' => '":name" has no coordinates yet. Open the Campus map page, select it in the building list, then use "Set position on map".',
     ],
 
     'roles' => [

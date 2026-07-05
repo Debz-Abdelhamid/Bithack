@@ -114,6 +114,35 @@ class CampusMap extends Page
         $this->pickingLocation = false;
     }
 
+    /**
+     * Selection from the side-panel dropdown (works for buildings without
+     * coordinates too — the fix for the "can't place an unplaced building"
+     * chicken-and-egg). Tells the map to highlight/fly when placed.
+     */
+    public function selectBuildingFromList(int $id): void
+    {
+        $this->selectedBuildingId = $id;
+        $this->pickingLocation = false;
+
+        $building = collect($this->getBuildingsPayload())->firstWhere('id', $id);
+
+        $this->dispatch(
+            'campus-select-building',
+            id: $id,
+            latitude: $building['latitude'] ?? null,
+            longitude: $building['longitude'] ?? null,
+        );
+    }
+
+    public function selectedBuildingIsPlaced(): bool
+    {
+        $selected = $this->getSelectedBuilding();
+
+        return $selected !== null
+            && $selected['latitude'] !== null
+            && $selected['longitude'] !== null;
+    }
+
     public function startPicking(): void
     {
         abort_unless($this->canEditBuildings(), 403);
