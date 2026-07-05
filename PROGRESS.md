@@ -31,6 +31,7 @@
 - **2026-07-05** English-first UI (reversal of French-first; strings stay in lang files). Timezone Africa/Algiers.
 - **2026-07-05** `faculty_id` semantics: **N2 = required authorization boundary** (form-enforced); teacher/user = affiliation only, never filters rooms; empty = central. **Approval routes to the ROOM's faculty N2**, not the requester's.
 - **2026-07-05** Phase 5 form fields: requester read-only from account; module + level required for course bookings; department free-text until R9; attendees ≤ room capacity (Schema.md §2.7).
+- **2026-07-06** Emploi du temps = confirmed recurring reservations (no separate timetable entity — the academic referential is R9's, ui-design.md §9.4). Initial semester fill is **strictly teacher-initiated** (owner deferred to the rules: keeps the locked 2026-07-04 booking decision, least privilege, honest `requested_by` audit trail). See open question 7 for the possible top-down entry mode.
 
 ## Open questions (`TODO(confirm)` — never guess)
 
@@ -40,6 +41,7 @@
 4. Department field → FK when R9 academic referential exists.
 5. Phase 5 defaults awaiting confirmation: recurrence ends at teacher-picked date (≤ ~4 months); N2 sees all conflicting pending requests, confirming one auto-rejects overlaps.
 6. Affectation semantics (Phase 4, Schema.md §2.6): an equipment assignment with a destination room also moves the asset (`equipments.local_id` synced) — permissive reading of §1; confirm whether affectation and physical relocation should be strictly separate operations instead.
+7. Timetable bulk entry (raised 2026-07-06): does UBMA want a **top-down mode** where a faculty scheduling officer (N2 or delegate) enters the whole semester timetable directly as confirmed slots, in addition to teacher-initiated requests? Default shipped in Phase 5 = teacher-initiated only (locked 2026-07-04 decision). If yes later: it needs an explicit new permission + a decision on how `requested_by` is recorded for slots entered on a teacher's behalf.
 
 ## Operational notes
 
