@@ -31,6 +31,21 @@ return [
             'label' => 'Local',
             'plural' => 'Locaux',
         ],
+        'equipment' => [
+            'label' => 'Équipement',
+            'plural' => 'Équipements',
+        ],
+        'purchase_reference' => [
+            'label' => 'Référence achat',
+            'plural' => 'Références achat',
+        ],
+    ],
+
+    'sections' => [
+        'identification' => 'Identification',
+        'details' => 'Détails',
+        'location_acquisition' => 'Localisation & acquisition',
+        'qr_code' => 'Code QR',
     ],
 
     'fields' => [
@@ -66,6 +81,30 @@ return [
         'building_faculty_help' => 'Laisser vide pour les bâtiments centraux ou partagés (bibliothèque, administration…). Les bâtiments de faculté délimitent la visibilité N2 et le routage des approbations de réservation.',
         'local_responsible_help' => 'Contact au quotidien pour ce local (tout utilisateur, aucun rôle particulier).',
         'coordinates_help' => 'Saisir manuellement, ou utiliser « Positionner sur la carte » depuis la page Cartographie campus.',
+        'inventory_code' => 'Code inventaire',
+        'inventory_code_help' => 'Laisser vide pour générer automatiquement (UBMA-AAAA-NNNNN). Ne saisir un code que pour reprendre un numéro de registre existant.',
+        'designation' => 'Désignation',
+        'category' => 'Catégorie',
+        'sub_category' => 'Sous-catégorie',
+        'brand' => 'Marque',
+        'model' => 'Modèle',
+        'serial_number' => 'Numéro de série',
+        'condition' => 'État',
+        'photo' => 'Photo',
+        'notes' => 'Notes',
+        'local' => 'Local',
+        'unplaced' => 'Non affecté (stock central)',
+        'equipment_local_help' => 'Localisation physique actuelle. Laisser vide pour un bien non placé / en stock central.',
+        'acquisition_date' => 'Date d\'acquisition',
+        'acquisition_value' => 'Valeur d\'acquisition',
+        'warranty_end_date' => 'Fin de garantie',
+        'purchase_reference' => 'Référence achat (R7)',
+        'purchase_reference_help' => 'Lien facultatif vers la commande du module achats (R7) dont provient ce bien.',
+        'external_purchase_id' => 'Référence achat externe',
+        'external_purchase_id_help' => 'Identifiant de la commande dans le module achats (R7).',
+        'supplier' => 'Fournisseur',
+        'order_date' => 'Date de commande',
+        'label_printed' => 'Étiquette imprimée',
     ],
 
     'service_types' => [
@@ -96,6 +135,33 @@ return [
         'occupied' => 'Occupé',
         'under_maintenance' => 'En maintenance',
         'closed' => 'Fermé',
+    ],
+
+    'equipment_statuses' => [
+        'in_service' => 'En service',
+        'under_repair' => 'En réparation',
+        'decommissioned' => 'Réformé',
+        'lost' => 'Perdu',
+    ],
+
+    'equipment_conditions' => [
+        'new' => 'Neuf',
+        'good' => 'Bon',
+        'worn' => 'Usé',
+        'damaged' => 'Endommagé',
+    ],
+
+    'qr' => [
+        'print_label' => 'Imprimer l\'étiquette',
+        'label_title' => 'Étiquette QR',
+        'printed' => 'Étiquette imprimée',
+        'not_printed' => 'Étiquette pas encore imprimée',
+        'generated_at' => 'généré le :date',
+        'missing' => 'Aucun code QR — cette fiche est antérieure à la génération QR. Contactez un administrateur.',
+    ],
+
+    'lookup' => [
+        'report_hint' => 'Pour signaler un problème sur ce bien, contactez le service patrimoine. Le signalement en ligne depuis cette page arrive bientôt.',
     ],
 
     'campus_map' => [

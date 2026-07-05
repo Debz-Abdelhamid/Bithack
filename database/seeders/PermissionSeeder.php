@@ -16,7 +16,7 @@ use Spatie\Permission\PermissionRegistrar;
  */
 class PermissionSeeder extends Seeder
 {
-    private const BUILDING_LOCAL_METHODS = [
+    private const RESOURCE_METHODS = [
         'ViewAny', 'View', 'Create', 'Update', 'Delete', 'DeleteAny',
         'Restore', 'RestoreAny', 'ForceDelete', 'ForceDeleteAny',
         'Replicate', 'Reorder',
@@ -28,13 +28,17 @@ class PermissionSeeder extends Seeder
 
         $fullPatrimoine = [];
 
-        foreach (['Building', 'Local'] as $model) {
-            foreach (self::BUILDING_LOCAL_METHODS as $method) {
+        foreach (['Building', 'Local', 'Equipment', 'PurchaseReference'] as $model) {
+            foreach (self::RESOURCE_METHODS as $method) {
                 $fullPatrimoine[] = Permission::findOrCreate("{$method}:{$model}", 'web')->name;
             }
         }
 
         $campusMap = Permission::findOrCreate('View:CampusMap', 'web')->name;
+
+        // Operational label printing (marks the QR as printed) — its own
+        // permission so it stays delegable without write access.
+        $printLabel = Permission::findOrCreate('PrintLabel:Equipment', 'web')->name;
 
         // Escape hatch for a future faculty-affiliated-but-global user
         // (FacultyScope) — exists as data, granted to nobody by default.
@@ -43,11 +47,13 @@ class PermissionSeeder extends Seeder
         $readOnlyPatrimoine = [
             'ViewAny:Building', 'View:Building',
             'ViewAny:Local', 'View:Local',
+            'ViewAny:Equipment', 'View:Equipment',
+            'ViewAny:PurchaseReference', 'View:PurchaseReference',
         ];
 
         // A3 — full CRUD on the inventory referential (matrix: "full CRUD inventory").
         Role::findByName(RoleName::GESTIONNAIRE_PATRIMOINE, 'web')
-            ->givePermissionTo([...$fullPatrimoine, $campusMap]);
+            ->givePermissionTo([...$fullPatrimoine, $campusMap, $printLabel]);
 
         // N2 — sees their faculty's patrimoine (FacultyScope narrows the queries).
         Role::findByName(RoleName::RESPONSABLE_FACULTE, 'web')

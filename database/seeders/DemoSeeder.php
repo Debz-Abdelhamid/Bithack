@@ -3,12 +3,16 @@
 namespace Database\Seeders;
 
 use App\Enums\BuildingStatus;
+use App\Enums\EquipmentCondition;
+use App\Enums\EquipmentStatus;
 use App\Enums\LocalStatus;
 use App\Enums\LocalType;
 use App\Enums\ServiceType;
 use App\Models\Building;
+use App\Models\Equipment;
 use App\Models\Faculty;
 use App\Models\Local;
+use App\Models\PurchaseReference;
 use App\Models\Service;
 use App\Models\User;
 use App\Support\RoleName;
@@ -68,6 +72,7 @@ class DemoSeeder extends Seeder
         }
 
         $this->seedCampus($technology, $sciences);
+        $this->seedEquipments();
     }
 
     /**
@@ -118,6 +123,44 @@ class DemoSeeder extends Seeder
                     ],
                 );
             }
+        }
+    }
+
+    /**
+     * Demo assets — inventory codes are fixed (not auto-generated) so the
+     * seeder stays idempotent across re-runs. Each creation still goes
+     * through the observer, so every equipment gets its QR token.
+     */
+    private function seedEquipments(): void
+    {
+        $order = PurchaseReference::query()->firstOrCreate(
+            ['external_purchase_id' => 'R7-2025-0042 (demo)'],
+            ['supplier' => 'Demo IT Supplier Ltd.', 'order_date' => '2025-09-15'],
+        );
+
+        $networksLab = Local::query()->where('code', 'A-LAB1')->first();
+        $amphiA = Local::query()->where('code', 'A-101')->first();
+        $readingRoom = Local::query()->where('code', 'C-301')->first();
+
+        $equipments = [
+            ['UBMA-2025-00001', 'Desktop computer (demo)', 'informatique', $networksLab?->id, $order->id, EquipmentStatus::InService, EquipmentCondition::Good],
+            ['UBMA-2025-00002', 'Video projector (demo)', 'informatique', $amphiA?->id, $order->id, EquipmentStatus::InService, EquipmentCondition::New],
+            ['UBMA-2025-00003', 'Air conditioner (demo)', 'electrique', $readingRoom?->id, null, EquipmentStatus::UnderRepair, EquipmentCondition::Worn],
+            ['UBMA-2025-00004', 'Office desk (demo)', 'mobilier', null, null, EquipmentStatus::InService, EquipmentCondition::Good],
+        ];
+
+        foreach ($equipments as [$code, $designation, $category, $localId, $orderId, $status, $condition]) {
+            Equipment::query()->firstOrCreate(
+                ['inventory_code' => $code],
+                [
+                    'designation' => $designation,
+                    'category' => $category,
+                    'local_id' => $localId,
+                    'purchase_reference_id' => $orderId,
+                    'status' => $status,
+                    'condition' => $condition,
+                ],
+            );
         }
     }
 }

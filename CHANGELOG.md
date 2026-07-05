@@ -3,6 +3,48 @@
 All notable changes to the PUI-UBMA R13 Patrimoine module.
 Format: one entry per phase (see `Phases.md`), Conventional-Commit-style categories.
 
+## Phase 3 — Inventory: Equipments + QR (2026-07-05)
+
+### Added
+- `equipments` (Schema.md §2.3; `sub_category` relaxed to nullable — documented divergence),
+  `qr_codes` (polymorphic, **opaque unique UUID token** — sequential ids never leave the
+  system, closing the legacy guessable-code hole from ui-design.md §9.3) and
+  `purchase_references` (R7 stub, §2.13) tables + enums, models, factories.
+- **Étape 1 workflow** via `EquipmentObserver`: every equipment gets a unique inventory code
+  (`UBMA-YYYY-NNNNN`, auto-generated when blank — manual entry kept for legacy registry
+  numbers; best-effort row lock + unique index as the hard guarantee) and a QR token at
+  creation; the QR row is cleaned up on delete.
+- **Equipment Filament resource** (list w/ status/condition/category/room filters, create,
+  edit, view) with a QR block on the view page (256px SVG via `simplesoftwareio/simple-qrcode`
+  / BaconQrCode, same rendering stack look as the legacy `qrcode.react` block) + mono
+  inventory codes; `PurchaseReference` manage-page stub + inline-create from the equipment
+  form (full procurement module stays R7/Phase 10).
+- **Print label** (old-app flow parity): new tab → A4 card (QR + monospace code) →
+  auto `window.print()`; route is auth + `PrintLabel:Equipment` policy + throttle protected,
+  marks the QR printed and audit-logs `label_printed`. Deliberate, documented GET side
+  effect (synchronous new-tab navigation can't POST; flag is an idempotent operational marker).
+- **Public QR lookup** `GET /report/{token}` (Phase 3 DoD): same URL contract as the legacy
+  app so labels printed now survive Phase 6 (report form lands on this page). Public,
+  read-only, **data-minimized** (designation, code, category, location, status only — no
+  value/serial/notes/photo, Law 18-07), UUID route constraint, unknown = plain 404, and a
+  Redis-backed `qr-lookup` limiter (30/min/IP + 10/min/token+IP) verified live (429 +
+  Retry-After).
+- **FacultyScope extended to Equipment** (room → building → faculty): N2 sees own-faculty +
+  shared-building + unplaced/central-stock assets; foreign detail URLs 404. A3 full CRUD +
+  PrintLabel; N2/N3 read-only (PermissionSeeder baseline).
+- Demo data: 1 purchase reference + 4 equipments (fixed codes for idempotent re-seeding,
+  QR tokens via the observer).
+- 22 new Pest tests (81 total, sqlite + pgsql): code/token generation (sequence, manual-code
+  continuation, uniqueness), QR cleanup on delete, A3 create happy path, N2 create denied +
+  scoping + foreign 404 + read-only view, tout_utilisateur denied, view-page QR render,
+  public lookup 200/404/junk-404, sensitive-field leak guard, per-token 429, print-label
+  A3 ok + audit / N2 403 / guest redirect, purchase reference create + link.
+
+### Notes
+- Migration reversibility verified (`migrate:rollback --step=3` + re-migrate) and
+  `migrate:fresh --seed` gated on a **scratch database** — the live dev DB was only
+  additively migrated.
+
 ## Phase 2 — Buildings & Rooms + campus map port (2026-07-05)
 
 ### Added

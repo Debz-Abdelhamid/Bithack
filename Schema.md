@@ -86,7 +86,7 @@ integration points it references (R7 achats, R9 calendrier, R10 finances).
 | id | bigint pk | |
 | inventory_code | string, unique | printed on the physical QR label |
 | designation | string | |
-| category / sub_category | string | |
+| category / sub_category | string | `sub_category` nullable *(2026‑07‑05, Phase 3: relaxed — not every asset has a sub‑category)* |
 | brand / model / serial_number | string, nullable | |
 | local_id | fk → locals, nullable | current physical location |
 | acquisition_date | date, nullable | |

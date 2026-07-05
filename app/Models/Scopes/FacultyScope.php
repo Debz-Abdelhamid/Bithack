@@ -3,6 +3,7 @@
 namespace App\Models\Scopes;
 
 use App\Models\Building;
+use App\Models\Equipment;
 use App\Models\Local;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,6 +51,19 @@ class FacultyScope implements Scope
                     $inner->where('faculty_id', $user->faculty_id)
                         ->orWhereNull('faculty_id');
                 });
+            });
+
+            return;
+        }
+
+        // Equipment inherits its faculty through room → building; unplaced
+        // equipment (no room yet) is central stock, visible like shared
+        // buildings. The nested whereHas re-applies the Local branch above —
+        // same predicate, so it stays consistent by construction.
+        if ($model instanceof Equipment) {
+            $builder->where(function (Builder $query) use ($model): void {
+                $query->whereNull($model->qualifyColumn('local_id'))
+                    ->orWhereHas('local');
             });
         }
     }

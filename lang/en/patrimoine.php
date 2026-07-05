@@ -31,6 +31,21 @@ return [
             'label' => 'Room',
             'plural' => 'Rooms',
         ],
+        'equipment' => [
+            'label' => 'Equipment',
+            'plural' => 'Equipments',
+        ],
+        'purchase_reference' => [
+            'label' => 'Purchase reference',
+            'plural' => 'Purchase references',
+        ],
+    ],
+
+    'sections' => [
+        'identification' => 'Identification',
+        'details' => 'Details',
+        'location_acquisition' => 'Location & acquisition',
+        'qr_code' => 'QR code',
     ],
 
     'fields' => [
@@ -66,6 +81,30 @@ return [
         'building_faculty_help' => 'Leave empty for central or shared buildings (library, administration…). Faculty buildings scope what N2 sees and drive reservation approval routing.',
         'local_responsible_help' => 'Day-to-day contact for this room (any user, no special role).',
         'coordinates_help' => 'Fill manually, or use "Set position on map" from the Campus map page.',
+        'inventory_code' => 'Inventory code',
+        'inventory_code_help' => 'Leave blank to auto-generate (UBMA-YYYY-NNNNN). Type a code only when re-registering an existing registry number.',
+        'designation' => 'Designation',
+        'category' => 'Category',
+        'sub_category' => 'Sub-category',
+        'brand' => 'Brand',
+        'model' => 'Model',
+        'serial_number' => 'Serial number',
+        'condition' => 'Condition',
+        'photo' => 'Photo',
+        'notes' => 'Notes',
+        'local' => 'Room',
+        'unplaced' => 'Unplaced (central stock)',
+        'equipment_local_help' => 'Current physical location. Leave empty for unplaced/central-stock assets.',
+        'acquisition_date' => 'Acquisition date',
+        'acquisition_value' => 'Acquisition value',
+        'warranty_end_date' => 'Warranty end date',
+        'purchase_reference' => 'Purchase reference (R7)',
+        'purchase_reference_help' => 'Optional link to the procurement module (R7) order this asset came from.',
+        'external_purchase_id' => 'External purchase reference',
+        'external_purchase_id_help' => 'Identifier of the order in the procurement module (R7).',
+        'supplier' => 'Supplier',
+        'order_date' => 'Order date',
+        'label_printed' => 'Label printed',
     ],
 
     'service_types' => [
@@ -96,6 +135,33 @@ return [
         'occupied' => 'Occupied',
         'under_maintenance' => 'Under maintenance',
         'closed' => 'Closed',
+    ],
+
+    'equipment_statuses' => [
+        'in_service' => 'In service',
+        'under_repair' => 'Under repair',
+        'decommissioned' => 'Decommissioned',
+        'lost' => 'Lost',
+    ],
+
+    'equipment_conditions' => [
+        'new' => 'New',
+        'good' => 'Good',
+        'worn' => 'Worn',
+        'damaged' => 'Damaged',
+    ],
+
+    'qr' => [
+        'print_label' => 'Print label',
+        'label_title' => 'QR label',
+        'printed' => 'Label printed',
+        'not_printed' => 'Label not printed yet',
+        'generated_at' => 'generated :date',
+        'missing' => 'No QR code — this record predates QR generation. Contact an administrator.',
+    ],
+
+    'lookup' => [
+        'report_hint' => 'To report an issue with this asset, please contact the facilities department. Online reporting from this page is coming soon.',
     ],
 
     'campus_map' => [

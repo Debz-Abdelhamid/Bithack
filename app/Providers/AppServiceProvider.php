@@ -66,6 +66,18 @@ class AppServiceProvider extends ServiceProvider
                 $request->user()?->getAuthIdentifier() ?? $request->ip()
             );
         });
+
+        // Public QR lookup — the single most likely endpoint to be hammered
+        // (mass inventory campaigns, abuse). Per-IP overall + tighter
+        // per-token-per-IP, so one hot label can't starve the rest either.
+        RateLimiter::for('qr-lookup', function (Request $request): array {
+            $token = (string) $request->route('token');
+
+            return [
+                Limit::perMinute(30)->by('qr-lookup:ip:'.$request->ip()),
+                Limit::perMinute(10)->by('qr-lookup:token:'.$request->ip().':'.$token),
+            ];
+        });
     }
 
     /**

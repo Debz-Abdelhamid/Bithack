@@ -154,7 +154,28 @@
       "PowerShell(git add Schema.md Phases.md)",
       "PowerShell(git add PROGRESS.md)",
       "PowerShell(docker compose exec app sh -c \"./vendor/bin/pint --quiet; ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress 2>&1 | tail -n 1; ./vendor/bin/pest --filter='BuildingsLocals' 2>&1 | tail -n 3; npm run build 2>&1 | tail -n 2\")",
-      "PowerShell(docker compose exec app sh -c \"./vendor/bin/phpstan analyse --memory-limit=1G --no-progress 2>&1 | tail -n 2; ./vendor/bin/pest 2>&1 | tail -n 3\")"
+      "PowerShell(docker compose exec app sh -c \"./vendor/bin/phpstan analyse --memory-limit=1G --no-progress 2>&1 | tail -n 2; ./vendor/bin/pest 2>&1 | tail -n 3\")",
+      "PowerShell(git commit -F \"C:\\\\Users\\\\kheir\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-kheir-OneDrive-Desktop-Patrimo\\\\29960f64-1612-473e-bbbd-43fa87ba3355\\\\scratchpad\\\\commit-msg.txt\" 2>&1)",
+      "PowerShell(docker compose ps --format \"table {{.Name}}\\\\t{{.Service}}\\\\t{{.Status}}\")",
+      "PowerShell(docker compose exec app composer require simplesoftwareio/simple-qrcode --no-interaction --no-scripts --dry-run)",
+      "PowerShell(docker compose exec app composer require simplesoftwareio/simple-qrcode --no-interaction)",
+      "PowerShell(docker compose exec app php -r \"echo \\\\Composer\\\\InstalledVersions::getVersion\\('filament/filament'\\);\")",
+      "PowerShell(docker compose exec app php artisan migrate --force)",
+      "PowerShell(docker compose exec app php artisan db:seed --class=PermissionSeeder --force)",
+      "PowerShell(docker compose exec app php artisan db:seed --class=DemoSeeder --force)",
+      "PowerShell(docker compose exec app php artisan test --compact)",
+      "PowerShell(docker compose exec app ./vendor/bin/pint --test)",
+      "PowerShell(docker compose exec app ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress)",
+      "PowerShell(docker compose exec postgres psql -U patrimo -d patrimo -c \"DROP DATABASE IF EXISTS patrimo_scratch;\")",
+      "PowerShell(docker compose exec postgres psql -U patrimo -d patrimo -c \"CREATE DATABASE patrimo_scratch OWNER patrimo;\")",
+      "PowerShell(docker compose exec -e DB_DATABASE=patrimo_scratch app php artisan migrate:fresh --seed --force)",
+      "PowerShell(docker compose exec -e DB_DATABASE=patrimo_scratch app php artisan migrate:rollback --step=3 --force)",
+      "PowerShell(docker compose exec -e DB_DATABASE=patrimo_scratch app php artisan migrate --force)",
+      "PowerShell(docker compose exec postgres psql -U patrimo -d patrimo -t -c \"SELECT token FROM qr_codes LIMIT 1;\")",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:8080/report/70b71d6b-bce2-4f00-be47-e06272fc3688\" -UseBasicParsing; \"STATUS: $\\($r.StatusCode\\)\"; if \\($r.Content -match '<h1>\\([^<]+\\)</h1>'\\) { \"H1: $\\($Matches[1]\\)\" }; if \\($r.Content -match 'UBMA-\\\\d{4}-\\\\d{5}'\\) { \"CODE: $\\($Matches[0]\\)\" }; if \\($r.Content -match 'badge badge-\\(\\\\w+\\)'\\) { \"BADGE: $\\($Matches[1]\\)\" })",
+      "PowerShell(try { Invoke-WebRequest -Uri \"http://localhost:8080/report/00000000-0000-4000-8000-000000000000\" -UseBasicParsing } catch { \"UNKNOWN TOKEN STATUS: $\\($_.Exception.Response.StatusCode.value__\\)\" }; try { Invoke-WebRequest -Uri \"http://localhost:8080/report/not-a-uuid\" -UseBasicParsing } catch { \"JUNK STATUS: $\\($_.Exception.Response.StatusCode.value__\\)\" })",
+      "PowerShell($codes = @\\(\\); foreach \\($i in 1..11\\) { try { $r = Invoke-WebRequest -Uri \"http://localhost:8080/report/70b71d6b-bce2-4f00-be47-e06272fc3688\" -UseBasicParsing; $codes += $r.StatusCode } catch { $codes += $_.Exception.Response.StatusCode.value__ } }; \"SEQUENCE: $\\($codes -join ','\\)\")",
+      "PowerShell(docker compose exec app composer audit)"
     ]
   }
 }

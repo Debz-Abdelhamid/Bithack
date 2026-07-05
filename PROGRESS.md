@@ -6,7 +6,7 @@
 > gate passed and the project owner said go.
 
 **Repo:** https://github.com/Debz-Abdelhamid/patrimo (private, branch `main`, CI must stay green)
-**Last update:** 2026-07-05 — Phases 0–2 complete · next: **Phase 3 (Equipments + QR)**
+**Last update:** 2026-07-05 — Phases 0–3 complete · next: **Phase 4 (Affectations)** — waiting for owner go
 
 ---
 
@@ -17,8 +17,9 @@
 | 0 — Bootstrap | ✅ | Docker stack (nginx :8080 → php-fpm 8.4 non-root, PostgreSQL 16, Redis 7, queue, reverb, mailpit :8025, daily backup sidecar). Filament v4 panel themed from the legacy `Patrimo-BitHack` extraction (teal `#004c4c`/`#0f766e`, Plus Jakarta Sans, squared radii, UBMA brand). Legacy app archived in `legacy/` (own git history, git-ignored). QA: Pest + Larastan L6 + Pint; CI runs everything twice (sqlite + PostgreSQL). |
 | 1 — Identity & RBAC | ✅ | Locked six roles + technical `super_admin` as spatie/shield **data** (zero-permission default, gate-based super admin, Shield `panel_user` disabled). TOTP MFA **enforced for A3/N2/N3/admin** (request-time middleware), 30-min elevated idle timeout, login lockout, Redis panel throttle (120/min). Realtime notifications via **Laravel Reverb** (ws://localhost:8081, private per-user channels, throttled `/broadcasting/auth`, queued). Domain-restricted **self-registration** (`PATRIMO_REGISTRATION_DOMAINS`, default univ-annaba.dz) + mandatory email verification (Mailpit locally) + hourly IP cap; password reset; email-change verification; institutional-domain rule on **all four** email surfaces (register, profile, admin create/edit — unchanged emails grandfathered). Account deactivation (`is_active`). Audit log: auth events (`login`/`logout`/`login_failed`/`password_reset`) + RBAC changes (role/permission attach/detach + Role lifecycle) + model changes (users/faculties/services). |
 | 2 — Buildings & Rooms + map | ✅ | `buildings` (+`faculty_id` — documented Schema.md §2.1 divergence; NULL = central/shared) & `locals` with enums/factories/resources (Building has a Rooms relation manager). **FacultyScope** global scope: N2 sees own faculty + shared only (list, search, direct URL → 404); A3/N3 unscoped; `ViewAcrossFaculties` escape hatch exists ungranted. **Campus map ported as-is**: `maplibre-gl` v5 vanilla (React wrapper dropped), OpenFreeMap bright tiles, UBMA center zoom 17 / pitch 45, same SVG flag markers/tooltips/selection, rooms side panel, crosshair pick-a-location **through the Building update policy**. `PermissionSeeder` = matrix baseline (A3 full CRUD, N2/N3 read-only, map viewable by all roles). |
+| 3 — Equipments + QR | ✅ | `equipments` (§2.3, `sub_category` relaxed nullable — documented) + `qr_codes` (**opaque UUID token**, unique morph pair) + `purchase_references` R7 stub. `EquipmentObserver`: auto inventory code `UBMA-YYYY-NNNNN` (manual entry kept; unique index = hard guarantee) + QR row on create, cleanup on delete. Equipment resource (filters, view page w/ 256px QR SVG block via simple-qrcode). **Print label**: A3-only (`PrintLabel:Equipment`), new tab → A4 → auto print, marks printed + audit (documented GET side effect). **Public lookup `GET /report/{token}`** — same URL contract as legacy so printed labels survive Phase 6; data-minimized card (no value/serial/notes/photo); UUID route constraint; Redis `qr-lookup` limiter (30/min/IP + 10/min/token+IP) verified live. FacultyScope → Equipment via room→building (unplaced = central, visible). N2/N3 read-only, tout_utilisateur denied. |
 
-**Tests:** 59 green (sqlite + pgsql in CI). **English-first UI** (owner decision; `lang/en` primary, `lang/fr` maintained). **Timezone:** Africa/Algiers.
+**Tests:** 81 green (sqlite + pgsql in CI). **English-first UI** (owner decision; `lang/en` primary, `lang/fr` maintained). **Timezone:** Africa/Algiers.
 
 ## Decision log (owner decisions, dated — do not re-litigate)
 
@@ -49,4 +50,7 @@
 
 ## Next
 
-**Phase 3 — Inventory: Equipments + QR** (Phases.md): `equipments` + `qr_codes` (opaque UUID token, never sequential ids), print-label action, rate-limited public lookup endpoint, `purchase_references` stub. *(Owner may instead say "go reservations" to pull Phase 5 forward.)*
+**Phase 4 — Affectations** (Phases.md): `assignments` table + Resource scoped by A3/N2
+permissions; assignment history view on the equipment detail page (who had it, when);
+assigning updates the asset's current location/service while preserving full history.
+*(Owner may instead say "go reservations" to pull Phase 5 forward.)* **Waiting for owner go.**
