@@ -32,6 +32,8 @@ return [
         'password' => 'Password',
         'roles' => 'Roles',
         'faculty' => 'Faculty',
+        'faculty_help' => 'For N2 this defines their approval/visibility scope (required). For teachers and users it is affiliation only — it never limits which rooms they can request. Leave empty for central roles (A3, N3, admin).',
+        'faculty_required_for_n2' => 'A faculty is required for the Faculty Head (N2) role — it defines their approval scope.',
         'code' => 'Code',
         'type' => 'Type',
         'responsible' => 'Responsible',

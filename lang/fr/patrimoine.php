@@ -32,6 +32,8 @@ return [
         'password' => 'Mot de passe',
         'roles' => 'Rôles',
         'faculty' => 'Faculté',
+        'faculty_help' => 'Pour N2, définit son périmètre d\'approbation/visibilité (obligatoire). Pour les enseignants et utilisateurs, simple rattachement — ne limite jamais les salles demandables. Laisser vide pour les rôles centraux (A3, N3, admin).',
+        'faculty_required_for_n2' => 'Une faculté est requise pour le rôle Responsable faculté (N2) — elle définit son périmètre d\'approbation.',
         'code' => 'Code',
         'type' => 'Type',
         'responsible' => 'Responsable',

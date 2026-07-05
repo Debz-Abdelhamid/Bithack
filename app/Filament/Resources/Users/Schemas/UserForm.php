@@ -4,10 +4,12 @@ namespace App\Filament\Resources\Users\Schemas;
 
 use App\Models\User;
 use App\Rules\InstitutionalEmailDomain;
+use App\Support\RoleName;
 use Closure;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
@@ -46,7 +48,30 @@ class UserForm
                     ->relationship('faculty', 'name')
                     ->preload()
                     ->searchable()
-                    ->nullable(),
+                    ->helperText(__('patrimoine.fields.faculty_help'))
+                    // Security.md §3 — faculty is N2's authorization boundary:
+                    // required when the responsable_faculte role is selected
+                    // (a "nullable" + custom-rule combo would be skipped by the
+                    // validator on null values). For teachers/users it is
+                    // affiliation metadata only.
+                    ->required(function (Get $get): bool {
+                        $selectedRoleIds = collect((array) $get('roles'))
+                            ->filter()
+                            ->map(fn ($id): int => (int) $id);
+
+                        if ($selectedRoleIds->isEmpty()) {
+                            return false;
+                        }
+
+                        $n2RoleId = Role::query()
+                            ->where('name', RoleName::RESPONSABLE_FACULTE)
+                            ->value('id');
+
+                        return $n2RoleId !== null && $selectedRoleIds->contains((int) $n2RoleId);
+                    })
+                    ->validationMessages([
+                        'required' => __('patrimoine.fields.faculty_required_for_n2'),
+                    ]),
                 Select::make('roles')
                     ->label(__('patrimoine.fields.roles'))
                     ->relationship('roles', 'name')
@@ -54,7 +79,8 @@ class UserForm
                         fn (Role $record): string => __('patrimoine.roles.'.$record->name)
                     )
                     ->multiple()
-                    ->preload(),
+                    ->preload()
+                    ->live(),
                 Toggle::make('is_active')
                     ->label(__('patrimoine.fields.is_active'))
                     ->default(true)

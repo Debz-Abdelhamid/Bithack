@@ -64,6 +64,15 @@ extra actor in your workflow diagrams.
   string comparisons scattered through the app.
 - Query scoping (N2 sees only their faculty's data) via Eloquent **global scopes** driven by the
   authenticated user's `faculty_id`, not per‑query manual filtering that's easy to forget.
+- **`users.faculty_id` semantics per role** *(clarified 2026‑07‑05 by project owner)*:
+  - **N2**: authorization boundary — **required** (an N2 without a faculty has an empty scope);
+    defines what they see/administer/approve.
+  - **Enseignant / tout utilisateur**: organizational affiliation only — **never** restricts what
+    rooms they can search or request; a teacher may request any bookable room campus‑wide.
+  - **A3 / N3 / super admin / service technique**: left empty = central, university‑wide scope.
+  - **Reservation approval routing (Phase 5) follows the ROOM's faculty** (via its building),
+    not the requester's — a Sciences teacher booking a Technology amphi is approved by
+    Technology's N2.
 - Principle of least privilege by default: a new role starts with **zero** permissions, granted explicitly.
 
 ---

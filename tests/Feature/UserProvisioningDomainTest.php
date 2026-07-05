@@ -2,6 +2,7 @@
 
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
+use App\Models\Role;
 use App\Models\User;
 use App\Support\RoleName;
 use Database\Seeders\RoleSeeder;
@@ -56,6 +57,42 @@ it('still lets admins edit a legacy out-of-domain account without changing its e
         ->assertHasNoFormErrors();
 
     expect($legacy->refresh()->name)->toBe('Après Modification');
+});
+
+it('requires a faculty when assigning the N2 role', function (): void {
+    $n2RoleId = Role::query()
+        ->where('name', RoleName::RESPONSABLE_FACULTE)
+        ->value('id');
+
+    Livewire::test(CreateUser::class)
+        ->fillForm([
+            'name' => 'Faculty Head Without Faculty',
+            'email' => 'headless@univ-annaba.dz',
+            'password' => 'Motdepasse!Solide123',
+            'roles' => [$n2RoleId],
+        ])
+        ->call('create')
+        ->assertHasFormErrors(['faculty_id']);
+
+    expect(User::query()->where('email', 'headless@univ-annaba.dz')->exists())->toBeFalse();
+});
+
+it('does not require a faculty for teachers — affiliation only', function (): void {
+    $teacherRoleId = Role::query()
+        ->where('name', RoleName::ENSEIGNANT)
+        ->value('id');
+
+    Livewire::test(CreateUser::class)
+        ->fillForm([
+            'name' => 'Campus-Wide Teacher',
+            'email' => 'teacher.nofaculty@univ-annaba.dz',
+            'password' => 'Motdepasse!Solide123',
+            'roles' => [$teacherRoleId],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    expect(User::query()->where('email', 'teacher.nofaculty@univ-annaba.dz')->exists())->toBeTrue();
 });
 
 it('blocks changing an existing email to a non-institutional one', function (): void {

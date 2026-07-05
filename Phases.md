@@ -61,6 +61,9 @@ Security gate and Performance gate described there.
   delegate) approves; A3 administers. `tout_utilisateur` gets a **read‑only** timetable /
   availability view (emploi du temps) — no booking form. *(Policy set 2026‑07‑04 by project
   owner, overriding the source doc's "tout utilisateur books common rooms".)*
+- **Teachers search/request campus‑wide** — their own `faculty_id` never filters the catalog
+  (affiliation metadata only). **Approval routes to the N2 of the ROOM's faculty** (via its
+  building), not the requester's faculty. *(Clarified 2026‑07‑05, see `Security.md` §3.)*
 - Rate limit the booking endpoint to prevent slot‑spamming.
 - Realtime notifications (database + broadcast, queued): requester notified when their
   reservation is confirmed/rejected; approver (N2/delegate) notified of new pending requests.

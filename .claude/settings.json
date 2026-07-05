@@ -126,7 +126,22 @@
       "PowerShell(docker compose exec app sh -c \"sed -i 's/request\\(\\)?->ip\\(\\)/request\\(\\)->ip\\(\\)/g' app/Providers/AppServiceProvider.php && grep -c 'request\\(\\)->ip\\(\\)' app/Providers/AppServiceProvider.php\")",
       "PowerShell(docker compose exec backup /backup.sh 2>&1)",
       "PowerShell(docker compose exec postgres dropdb -U patrimo --if-exists patrimo_restore_test)",
-      "PowerShell(git add -A; \"STAGED=$\\(\\(git diff --cached --name-only | Measure-Object -Line\\).Lines\\)\"; \"ENV_LEAK=$\\(git ls-files --cached | Select-String -Pattern '^\\\\.env$|storage/backups|^legacy/' | Measure-Object -Line | Select-Object -ExpandProperty Lines\\)\"; git status --short | Select-Object -First 5)"
+      "PowerShell(git add -A; \"STAGED=$\\(\\(git diff --cached --name-only | Measure-Object -Line\\).Lines\\)\"; \"ENV_LEAK=$\\(git ls-files --cached | Select-String -Pattern '^\\\\.env$|storage/backups|^legacy/' | Measure-Object -Line | Select-Object -ExpandProperty Lines\\)\"; git status --short | Select-Object -First 5)",
+      "PowerShell(gh repo create patrimo --private --source=. --remote=origin --push 2>&1)",
+      "PowerShell(git branch -m master main)",
+      "PowerShell(git push -u origin main 2>&1)",
+      "PowerShell(gh repo edit Debz-Abdelhamid/patrimo --default-branch main 2>&1)",
+      "PowerShell(git push origin --delete master 2>&1)",
+      "PowerShell(gh repo view Debz-Abdelhamid/patrimo --json name,visibility,defaultBranchRef --jq '.name + \\\\\" / \\\\\" + .visibility + \\\\\" / default:\\\\\" + .defaultBranchRef.name')",
+      "PowerShell(gh run list --repo Debz-Abdelhamid/patrimo --limit 3 2>&1)",
+      "PowerShell(gh run watch 28717068018 --repo Debz-Abdelhamid/patrimo --exit-status 2>&1 | Select-Object -Last 12; \"CI_RC=$LASTEXITCODE\")",
+      "PowerShell(gh run view 28717068018 --repo Debz-Abdelhamid/patrimo 2>&1)",
+      "PowerShell(docker compose exec app sh -c \"./vendor/bin/pint --quiet; ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress 2>&1 | tail -n 1; ./vendor/bin/pest 2>&1 | tail -n 3\")",
+      "PowerShell(git add tests/TestCase.php)",
+      "PowerShell(git push origin main 2>&1)",
+      "PowerShell(Start-Sleep -Seconds 15; $run = gh run list --repo Debz-Abdelhamid/patrimo --limit 1 --json databaseId --jq '.[0].databaseId'; \"RUN=$run\"; gh run watch $run --repo Debz-Abdelhamid/patrimo --exit-status 2>&1 | Select-Object -Last 8; \"CI_RC=$LASTEXITCODE\")",
+      "PowerShell(docker compose exec app sh -c \"./vendor/bin/pest --filter='faculty' 2>&1 | grep -B 2 -A 10 'FAILED' | head -n 22\")",
+      "PowerShell(git add -A)"
     ]
   }
 }
