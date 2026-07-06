@@ -28,7 +28,7 @@ class PermissionSeeder extends Seeder
 
         $fullPatrimoine = [];
 
-        foreach (['Building', 'Local', 'Equipment', 'PurchaseReference', 'Assignment', 'RoomReservation'] as $model) {
+        foreach (['Building', 'Local', 'Equipment', 'PurchaseReference', 'Assignment', 'RoomReservation', 'Department', 'AcademicTerm'] as $model) {
             foreach (self::RESOURCE_METHODS as $method) {
                 $fullPatrimoine[] = Permission::findOrCreate("{$method}:{$model}", 'web')->name;
             }
@@ -62,6 +62,11 @@ class PermissionSeeder extends Seeder
             'ViewAny:PurchaseReference', 'View:PurchaseReference',
             'ViewAny:Assignment', 'View:Assignment',
             'ViewAny:RoomReservation', 'View:RoomReservation',
+            'ViewAny:Department', 'View:Department',
+            // AcademicTerm is a university-wide referential (like Faculty)
+            // — N2 needs to read it to pick a term when filling their
+            // department's timetable, but never manages it.
+            'ViewAny:AcademicTerm', 'View:AcademicTerm',
         ];
 
         // N2 administers affectations inside their faculty (matrix:
@@ -78,6 +83,12 @@ class PermissionSeeder extends Seeder
             $manageTimetable, $approveReservation,
         ];
 
+        // N2 manages their own faculty's departments (Phase 5 addendum,
+        // 2026-07-06) — the faculty owns the department referential it
+        // fills a timetable for. Never deletes: history/reservations may
+        // reference it.
+        $n2Departments = ['Create:Department', 'Update:Department'];
+
         // A3 — full CRUD on the inventory referential (matrix: "full CRUD inventory").
         Role::findByName(RoleName::GESTIONNAIRE_PATRIMOINE, 'web')
             ->givePermissionTo([
@@ -88,7 +99,7 @@ class PermissionSeeder extends Seeder
         // N2 — sees their faculty's patrimoine (FacultyScope narrows the queries).
         Role::findByName(RoleName::RESPONSABLE_FACULTE, 'web')
             ->givePermissionTo([
-                ...$readOnlyPatrimoine, ...$n2Assignments, ...$n2Reservations,
+                ...$readOnlyPatrimoine, ...$n2Assignments, ...$n2Reservations, ...$n2Departments,
                 $campusMap, $reservationAvailability,
             ]);
 

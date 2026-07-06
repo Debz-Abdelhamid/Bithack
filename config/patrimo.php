@@ -61,15 +61,14 @@ return [
     |--------------------------------------------------------------------------
     | Room reservations (Phase 5 — PROGRESS.md open question #5)
     |--------------------------------------------------------------------------
-    | TODO(confirm): both values are conservative defaults, not confirmed
-    | university policy — flagged in PROGRESS.md, do not treat as final.
+    | TODO(confirm): the request throttle is a conservative default, not
+    | confirmed university policy — flagged in PROGRESS.md, not final.
+    | The old "max_recurrence_months" arbitrary cap is gone (2026-07-06
+    | addendum) — a faculty-entered weekly slot now recurs to its Academic
+    | Term's end_date, the authoritative boundary.
     */
 
     'reservations' => [
-        // How far a faculty-entered weekly timetable slot may recur before
-        // needing a fresh end date (~one academic term).
-        'max_recurrence_months' => (int) env('PATRIMO_RESERVATION_MAX_RECURRENCE_MONTHS', 4),
-
         // Per-user hourly cap on ad-hoc Enseignant requests (Security.md §5
         // — "per-user throttle to prevent slot-spamming/hoarding").
         'request_max_per_hour' => (int) env('PATRIMO_RESERVATION_REQUEST_MAX_PER_HOUR', 10),

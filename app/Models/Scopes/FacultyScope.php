@@ -4,6 +4,7 @@ namespace App\Models\Scopes;
 
 use App\Models\Assignment;
 use App\Models\Building;
+use App\Models\Department;
 use App\Models\Equipment;
 use App\Models\Local;
 use App\Models\RoomReservation;
@@ -54,6 +55,15 @@ class FacultyScope implements Scope
                         ->orWhereNull('faculty_id');
                 });
             });
+
+            return;
+        }
+
+        // A department always belongs to exactly one faculty — no
+        // shared/central concept, unlike Building — so a plain equality
+        // check is enough (no orWhereNull branch).
+        if ($model instanceof Department) {
+            $builder->where($model->qualifyColumn('faculty_id'), $user->faculty_id);
 
             return;
         }

@@ -30,6 +30,8 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon $start_at
  * @property Carbon $end_at
  * @property-read Local $local
+ * @property-read Department|null $department
+ * @property-read AcademicTerm|null $academicTerm
  * @property-read User $requestedBy
  * @property-read User|null $teacher
  * @property-read User|null $approvedBy
@@ -45,12 +47,12 @@ class RoomReservation extends Model
 
     protected $fillable = [
         'local_id',
+        'department_id',
         'source',
         'requested_by_user_id',
         'teacher_user_id',
         'module_name',
         'level',
-        'department',
         'student_group',
         'attendees_count',
         'purpose',
@@ -58,6 +60,7 @@ class RoomReservation extends Model
         'end_at',
         'recurring_rule',
         'recurring_group_id',
+        'academic_term_id',
         'status',
         'approved_by_user_id',
         'external_calendar_ref',
@@ -81,6 +84,22 @@ class RoomReservation extends Model
     public function local(): BelongsTo
     {
         return $this->belongsTo(Local::class);
+    }
+
+    /**
+     * @return BelongsTo<Department, $this>
+     */
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * @return BelongsTo<AcademicTerm, $this>
+     */
+    public function academicTerm(): BelongsTo
+    {
+        return $this->belongsTo(AcademicTerm::class);
     }
 
     /**

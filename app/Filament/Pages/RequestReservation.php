@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Enums\ReservationLevel;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
+use App\Models\Department;
 use App\Models\Local;
 use App\Models\RoomReservation;
 use App\Models\Scopes\FacultyScope;
@@ -21,6 +22,7 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -88,13 +90,30 @@ class RequestReservation extends Page implements HasForms
             ->components([
                 Select::make('local_id')
                     ->label(__('patrimoine.fields.local'))
-                    ->options(
-                        fn (): array => Local::query()
+                    // Campus-wide catalog (FacultyScope bypassed) can be
+                    // hundreds of rooms at real scale — query lazily per
+                    // keystroke rather than dumping every room into the
+                    // DOM at once (->options() would eagerly load + only
+                    // filter client-side).
+                    ->getSearchResultsUsing(
+                        fn (string $search): array => Local::query()
                             ->withoutGlobalScope(FacultyScope::class)
+                            ->where(fn (Builder $query) => $query
+                                ->where('code', 'like', "%{$search}%")
+                                ->orWhere('name', 'like', "%{$search}%"))
+                            ->limit(50)
                             ->get()
                             ->mapWithKeys(fn (Local $local): array => [$local->id => "{$local->code} — {$local->name}"])
                             ->all()
                     )
+                    ->getOptionLabelUsing(function ($value): ?string {
+                        $local = Local::query()
+                            ->withoutGlobalScope(FacultyScope::class)
+                            ->whereKey($value)
+                            ->first();
+
+                        return $local === null ? null : "{$local->code} — {$local->name}";
+                    })
                     ->searchable()
                     ->required(),
                 TextInput::make('module_name')
@@ -106,9 +125,28 @@ class RequestReservation extends Page implements HasForms
                     ->label(__('patrimoine.fields.level'))
                     ->options(ReservationLevel::class)
                     ->required(fn (Get $get): bool => filled($get('module_name'))),
-                TextInput::make('department')
+                Select::make('department_id')
                     ->label(__('patrimoine.fields.department'))
-                    ->maxLength(255),
+                    // Campus-wide like the room picker — a teacher's own
+                    // faculty affiliation never restricts what they can
+                    // request (Security.md §3).
+                    ->getSearchResultsUsing(
+                        fn (string $search): array => Department::query()
+                            ->withoutGlobalScope(FacultyScope::class)
+                            ->where('name', 'like', "%{$search}%")
+                            ->limit(50)
+                            ->get()
+                            ->mapWithKeys(fn (Department $department): array => [$department->id => $department->name])
+                            ->all()
+                    )
+                    ->getOptionLabelUsing(
+                        fn ($value): ?string => Department::query()
+                            ->withoutGlobalScope(FacultyScope::class)
+                            ->whereKey($value)
+                            ->value('name')
+                    )
+                    ->searchable()
+                    ->helperText(__('patrimoine.fields.request_department_help')),
                 TextInput::make('student_group')
                     ->label(__('patrimoine.fields.student_group'))
                     ->maxLength(255),

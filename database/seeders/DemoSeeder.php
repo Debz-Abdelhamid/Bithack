@@ -11,8 +11,10 @@ use App\Enums\ReservationLevel;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Enums\ServiceType;
+use App\Models\AcademicTerm;
 use App\Models\Assignment;
 use App\Models\Building;
+use App\Models\Department;
 use App\Models\Equipment;
 use App\Models\Faculty;
 use App\Models\Local;
@@ -80,7 +82,41 @@ class DemoSeeder extends Seeder
         $this->seedCampus($technology, $sciences);
         $this->seedEquipments();
         $this->seedAssignments();
+        $this->seedDepartmentsAndTerms($technology, $sciences);
         $this->seedReservations();
+    }
+
+    /**
+     * Phase 5 addendum (2026-07-06): 2 departments per faculty + 2
+     * academic terms — a "current" one (covers today) and a "next" one,
+     * illustrating "the faculty fills each department's timetable one
+     * semester at a time".
+     */
+    private function seedDepartmentsAndTerms(Faculty $technology, Faculty $sciences): void
+    {
+        $departments = [
+            ['Computer Science (demo)', 'CS', $technology->id],
+            ['Electronics (demo)', 'ELEC', $technology->id],
+            ['Mathematics (demo)', 'MATH', $sciences->id],
+            ['Physics (demo)', 'PHYS', $sciences->id],
+        ];
+
+        foreach ($departments as [$name, $code, $facultyId]) {
+            Department::query()->firstOrCreate(
+                ['faculty_id' => $facultyId, 'name' => $name],
+                ['code' => $code],
+            );
+        }
+
+        AcademicTerm::query()->firstOrCreate(
+            ['academic_year' => '2025-2026', 'semester' => 2],
+            ['start_date' => '2026-02-01', 'end_date' => '2026-07-15'],
+        );
+
+        AcademicTerm::query()->firstOrCreate(
+            ['academic_year' => '2026-2027', 'semester' => 1],
+            ['start_date' => '2026-09-15', 'end_date' => '2027-01-25'],
+        );
     }
 
     /**
@@ -196,10 +232,11 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * One `timetable` slot (N2-authored, confirmed) + one `request`
-     * (Enseignant ad-hoc, pending) — illustrates the 2026-07-06 split.
-     * Dates are relative ("next Monday/Tuesday") so re-seeding never lands
-     * in the past.
+     * One `timetable` slot (N2-authored, confirmed, department + term
+     * attached) + one `request` (Enseignant ad-hoc, pending) — illustrates
+     * the 2026-07-06 source split. The timetable slot's time aligns with
+     * TimetableBuilder::TIME_SLOTS[0] (08:00–09:30) so it renders in the
+     * grid; dates are relative so re-seeding never lands in the past.
      */
     private function seedReservations(): void
     {
@@ -207,12 +244,14 @@ class DemoSeeder extends Seeder
         $classroomA = Local::query()->where('code', 'A-102')->first();
         $n2 = User::query()->where('email', 'n2@demo.ubma.dz')->first();
         $teacher = User::query()->where('email', 'enseignant@demo.ubma.dz')->first();
+        $csDepartment = Department::query()->where('name', 'Computer Science (demo)')->first();
+        $currentTerm = AcademicTerm::current()->first();
 
         if ($amphiA === null || $classroomA === null || $n2 === null || $teacher === null) {
             return;
         }
 
-        $nextMonday = Carbon::parse('next monday')->setTime(9, 0);
+        $nextMonday = Carbon::parse('next monday')->setTime(8, 0);
 
         RoomReservation::query()->firstOrCreate(
             ['local_id' => $amphiA->id, 'start_at' => $nextMonday],
@@ -220,10 +259,12 @@ class DemoSeeder extends Seeder
                 'source' => ReservationSource::Timetable,
                 'requested_by_user_id' => $n2->id,
                 'teacher_user_id' => $teacher->id,
+                'department_id' => $csDepartment?->id,
+                'academic_term_id' => $currentTerm?->id,
                 'module_name' => 'Algorithms 101 (demo)',
                 'level' => ReservationLevel::L1,
                 'end_at' => $nextMonday->copy()->addMinutes(90),
-                'recurring_rule' => 'WEEKLY;UNTIL='.$nextMonday->copy()->addMonths(4)->toDateString(),
+                'recurring_rule' => $currentTerm !== null ? 'WEEKLY;UNTIL='.$currentTerm->end_date->toDateString() : null,
                 'status' => ReservationStatus::Confirmed,
             ],
         );

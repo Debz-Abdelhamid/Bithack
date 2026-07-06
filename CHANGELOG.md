@@ -3,6 +3,63 @@
 All notable changes to the PUI-UBMA R13 Patrimoine module.
 Format: one entry per phase (see `Phases.md`), Conventional-Commit-style categories.
 
+## Phase 5 addendum — Departments, academic terms, visual timetable grid (2026-07-06)
+
+### Fixed (user-caught, before it shipped further)
+- **Eager-loaded room picker**: `RequestReservation`'s `local_id` Select used `->options()`
+  with a full `->get()` — fine at demo scale (70 rooms), a real problem at university scale
+  (every room dumped into the DOM on every render). Switched to Filament's lazy
+  `getSearchResultsUsing()`/`getOptionLabelUsing()` pair — a bounded, server-side query per
+  keystroke, matching how every other searchable select in the app already behaves. Audited
+  every other `Select`/`SelectFilter` in the codebase: all `->relationship()` selects already
+  use `->searchable()` (Filament's built-in lazy AJAX search, not an eager dump), and no
+  Filament table disables pagination — this was the one genuine offender.
+
+### Changed (owner decision)
+- **The timetable gained the structure it actually has**: the academic year splits into 2
+  semesters; a faculty manages several departments and fills each department's timetable one
+  semester at a time. `room_reservations.department` (free text) is promoted to
+  `department_id` (new `departments` table, belongs to a faculty, FacultyScope'd like
+  `buildings`/`locals` minus the shared/central branch — N2 sees only their own faculty's
+  departments) and a new `academic_term_id` (new `academic_terms` table — academic year +
+  semester 1/2 + date range, a university-wide referential like `faculties`, A3-managed,
+  N2/N3 read). A `timetable` row's weekly recurrence now runs to its term's `end_date` — the
+  previous arbitrary "repeat until" date picker (capped at a configurable month count) is
+  gone entirely.
+- **Visual timetable grid, not just a form**: `TimetableBuilder`, a new custom Filament page,
+  ports the legacy app's actual weekly grid — confirmed from the legacy `data.ts` seed source
+  to be 6 fixed daily periods (`08:00–09:30` … `16:30–17:45`) × **Sat–Thu** columns (this also
+  corrects an earlier extraction note that suspected the old UI showed Mon–Sat; direct
+  inspection of the component actually driving the grid shows it always matched the Algerian
+  working-week Prisma enum). N2 (their own faculty's departments) / A3 pick a department +
+  academic term and fill the grid directly, with a side "Add to timetable" panel; the plain
+  `RoomReservationResource` create form still exists underneath (both now share a
+  `TimetableSlotService` extracted from the old `handleRecordCreation` logic) but the grid is
+  the primary, department/term-scoped entry point. Cancelling a card cancels the whole
+  recurring series (bulk update by `recurring_group_id`), not just one week.
+
+### Added
+- `departments` and `academic_terms` tables/models/policies/PermissionSeeder grants;
+  `DepartmentResource` (N2 own-faculty CRUD via a scoped-exists rule against forged faculty
+  ids, A3 everywhere) and `AcademicTermResource` (A3-managed, auto-generates its `label` from
+  academic year + semester when left blank).
+- `TimetableSlotService::createSeries()` — the single source of truth for "generate a
+  weekly-recurring slot bounded by an Academic Term's end date, pre-validated for conflicts,
+  all-or-nothing" — used by both `CreateRoomReservation` and `TimetableBuilder`.
+- 14 new Pest tests (129 total): Department RBAC (A3 any faculty, N2 own-faculty-only with
+  server-side scope enforcement against forged ids, resource denial for other roles),
+  AcademicTerm RBAC + label auto-generation, TimetableBuilder page gating, grid cell
+  placement, weekly slot creation bounded by the term, whole-series cancellation.
+
+### Notes
+- Gotcha hit and fixed: Filament's `->relationship()` Select assumes the schema is bound to a
+  real, saveable Eloquent record to resolve things — `TimetableBuilder`'s form (a
+  data-collection panel, not a Resource CRUD page) has no such record and threw
+  `hasAttribute() on null`. Fixed by using the same lazy-search pattern as the
+  `RequestReservation` fix above, for both the room and teacher selects.
+- Migration reversibility and scratch-DB fresh-seed verified; the live dev DB was only
+  additively migrated.
+
 ## Phase 5 — Room reservations (2026-07-06)
 
 ### Changed (owner decision, reverses part of the 2026-07-04 policy)

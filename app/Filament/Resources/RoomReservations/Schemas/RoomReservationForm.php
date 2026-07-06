@@ -3,11 +3,12 @@
 namespace App\Filament\Resources\RoomReservations\Schemas;
 
 use App\Enums\ReservationLevel;
+use App\Models\AcademicTerm;
+use App\Models\Department;
 use App\Models\Local;
 use App\Models\User;
 use App\Support\RoleName;
 use Closure;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -16,13 +17,16 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
 
 /**
  * The admin resource (N2/A3) only ever creates `timetable` rows — the
  * faculty-authored emploi du temps (decision 2026-07-06). `request` rows
  * come exclusively from the Enseignant ad-hoc booking page; N2/A3 only
  * confirm/reject those from the table, never hand-author them here.
+ *
+ * Phase 5 addendum (2026-07-06): timetable rows now carry a real
+ * Department (replacing free text) and Academic Term — recurrence runs
+ * to the term's end date rather than a manually picked one.
  */
 class RoomReservationForm
 {
@@ -62,6 +66,27 @@ class RoomReservationForm
                         ->preload()
                         ->required()
                         ->helperText(__('patrimoine.fields.teacher_help')),
+                    Select::make('department_id')
+                        ->label(__('patrimoine.fields.department'))
+                        ->relationship('department', 'name', modifyQueryUsing: fn (Builder $query): Builder => self::scopeDepartmentOptions($query))
+                        ->getOptionLabelFromRecordUsing(fn (Department $record): string => $record->name)
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->rules([
+                            fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                                if (filled($value) && ! self::scopeDepartmentOptions(Department::query())->whereKey($value)->exists()) {
+                                    $fail(__('patrimoine.validation.out_of_scope'));
+                                }
+                            },
+                        ]),
+                    Select::make('academic_term_id')
+                        ->label(__('patrimoine.fields.academic_term'))
+                        ->relationship('academicTerm', 'label')
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->default(fn (): ?int => AcademicTerm::current()->value('id')),
                 ]),
             Section::make(__('patrimoine.sections.reservation_course'))
                 ->columns(2)
@@ -74,9 +99,6 @@ class RoomReservationForm
                         ->label(__('patrimoine.fields.level'))
                         ->options(ReservationLevel::class)
                         ->required(),
-                    TextInput::make('department')
-                        ->label(__('patrimoine.fields.department'))
-                        ->maxLength(255),
                     TextInput::make('student_group')
                         ->label(__('patrimoine.fields.student_group'))
                         ->maxLength(255),
@@ -114,27 +136,8 @@ class RoomReservationForm
                         ->after('start_at'),
                     Toggle::make('repeat_weekly')
                         ->label(__('patrimoine.fields.repeat_weekly'))
+                        ->helperText(__('patrimoine.fields.repeat_weekly_term_help'))
                         ->live(),
-                    DatePicker::make('repeat_until')
-                        ->label(__('patrimoine.fields.repeat_until'))
-                        ->native(false)
-                        ->visible(fn (Get $get): bool => (bool) $get('repeat_weekly'))
-                        ->required(fn (Get $get): bool => (bool) $get('repeat_weekly'))
-                        ->after('start_at')
-                        ->rules([
-                            fn (Get $get): Closure => function (string $attribute, mixed $value, Closure $fail) use ($get): void {
-                                if (blank($value) || blank($get('start_at'))) {
-                                    return;
-                                }
-
-                                $months = (int) config('patrimo.reservations.max_recurrence_months');
-                                $cap = Carbon::parse($get('start_at'))->addMonths($months);
-
-                                if (Carbon::parse($value)->gt($cap)) {
-                                    $fail(__('patrimoine.validation.recurrence_too_long', ['months' => $months]));
-                                }
-                            },
-                        ]),
                 ]),
         ]);
     }
@@ -151,6 +154,21 @@ class RoomReservationForm
             // N2 owns exactly their own faculty's timetable — shared/
             // central rooms are A3's responsibility (Security.md §3).
             $query->whereHas('building', fn (Builder $q): Builder => $q->where('faculty_id', $user->faculty_id));
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param  Builder<Department>  $query
+     * @return Builder<Department>
+     */
+    public static function scopeDepartmentOptions(Builder $query): Builder
+    {
+        $user = auth()->user();
+
+        if ($user instanceof User && $user->faculty_id !== null && ! $user->can('ViewAcrossFaculties')) {
+            $query->where('faculty_id', $user->faculty_id);
         }
 
         return $query;

@@ -39,6 +39,8 @@ integration points it references (R7 achats, R9 calendrier, R10 finances).
 | `equipments` | Bien mobilier/équipement | Étape 1 |
 | `qr_codes` | One opaque QR token per trackable asset (equipment **or** local) | Étape 1, 4 |
 | `assignments` | Affectation d'un bien à un service/local/personne | Étape 2 |
+| `departments` | Département d'une faculté *(added 2026-07-06, Phase 5 addendum)* | Étape 3 (organizes the timetable) |
+| `academic_terms` | Semestre académique — l'année compte 2 semestres *(added 2026-07-06)* | Étape 3 (bounds the timetable's recurrence) |
 | `room_reservations` | Réservation de salle | Étape 3 |
 | `maintenance_tickets` | Ticket de signalement/maintenance | Étape 4, 5, 6 |
 | `interventions` | Intervention technique réalisée sur un ticket | Étape 5 |
@@ -142,21 +144,30 @@ integration points it references (R7 achats, R9 calendrier, R10 finances).
   room's‑faculty N2, or **A3 for a central/shared room** (no N2 owns it — gap closed
   2026‑07‑06).
 
+**Phase 5 addendum (2026‑07‑06)**: the academic year splits into 2 semesters; a faculty
+manages several departments and fills each one's timetable one semester at a time. `department`
+(free text) is promoted to `department_id` (FK to the new `departments` table, §2.14), and
+`academic_term_id` (FK to the new `academic_terms` table, §2.15) is added — a `timetable` row's
+weekly recurrence now runs to its term's `end_date` (the authoritative boundary), replacing the
+previous arbitrary "repeat until" date the form used to ask for.
+
 | Column | Type | Notes |
 |---|---|---|
 | id | bigint pk | |
 | local_id | fk → locals | |
+| department_id | fk → departments, nullable | *(2026‑07‑06)* required by the form whenever `module_name` is set (course booking), on either `source`; optional for a non‑course `request` (meeting, defense…) |
 | source | enum: `timetable, request` | drives who may create the row, its initial status, and the notification flow — see split above |
 | requested_by_user_id | fk → users | who **submitted/entered** this row: N2 or A3 for `timetable`, the Enseignant themself for `request`. **Never typed — always the authenticated account or an explicit picker** |
 | teacher_user_id | fk → users, nullable | the teacher this course slot is **for** — required whenever `module_name` is set, regardless of source. Equals `requested_by_user_id` for a teacher's own `request`; explicitly selected by N2/A3 for `timetable` rows (picker over Enseignant accounts, never free text) |
 | module_name | string, nullable | *(added 2026-07-05, owner requirement)* course/module being taught — required by the form for course bookings |
 | level | string, nullable | L1/L2/L3/M1/M2/Doctorate/Other (PHP enum) — required by the form for course bookings |
-| department | string, nullable | free text for now; `TODO(confirm)`: becomes a FK when the R9 academic referential (departments/specialities) exists |
 | student_group | string, nullable | e.g. "Groupe 3", optional |
 | attendees_count | smallint, nullable | validated ≤ `locals.capacity` at request time |
 | purpose | string, nullable | for non-course bookings (meetings, defenses…) |
 | start_at / end_at | timestamp | indexed together for overlap checks |
-| recurring_rule | string, nullable | RRULE-style, for `timetable` weekly course slots |
+| recurring_rule | string, nullable | RRULE-style, for `timetable` weekly course slots; `UNTIL=` is now the owning Academic Term's `end_date` |
+| recurring_group_id | uuid, nullable | *(2026‑07‑06 addition beyond the original listing)* ties a generated weekly series together for bulk cancel/edit, without fragile string matching on `recurring_rule` |
+| academic_term_id | fk → academic_terms, nullable | *(2026‑07‑06)* required by the form for `source = timetable` rows; the term whose `end_date` bounds the weekly recurrence |
 | status | enum: `pending, confirmed, rejected, cancelled` | `timetable` rows are created directly as `confirmed` (no separate approval step — authorship by N2/A3 **is** the approval); `request` rows start `pending` |
 | approved_by_user_id | fk → users, nullable | `request` rows only — the room's‑faculty N2, or A3 for central/shared rooms (routing rule, `Security.md` §3). Stays NULL on `timetable` rows |
 | external_calendar_ref | string, nullable | **lien R9** calendrier partagé |
@@ -164,6 +175,29 @@ integration points it references (R7 achats, R9 calendrier, R10 finances).
 Add a DB‑level exclusion constraint (or app‑level check) preventing overlapping **confirmed**
 reservations on the same `local_id` — checked across **both** `source` kinds together (a
 confirmed timetable slot blocks an overlapping request, and vice versa).
+
+### 2.14 `departments` (Phase 5 addendum, 2026‑07‑06)
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| faculty_id | fk → faculties | required — a department always belongs to exactly one faculty, no shared/central concept (unlike `buildings.faculty_id`) |
+| name | string | unique per faculty |
+| code | string, nullable | |
+
+FacultyScope applies (N2 sees only their own faculty's departments; A3/N3 unscoped) — same
+pattern as `buildings`/`locals`, minus the shared/central branch.
+
+### 2.15 `academic_terms` (Phase 5 addendum, 2026‑07‑06)
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| academic_year | string | e.g. `"2026-2027"` |
+| semester | tinyint | `1` or `2` — the academic year is split into 2 semesters |
+| label | string | auto-generated from `academic_year`/`semester` if left blank on creation (e.g. "2026-2027 — Semester 1") |
+| start_date / end_date | date | the authoritative boundary a `timetable` row's weekly recurrence runs to |
+
+University-wide referential (like `faculties`) — not faculty-scoped. A3-managed; N2/N3 read
+it to pick a term when filling/reviewing a timetable.
 
 ### 2.8 `maintenance_tickets`
 | Column | Type | Notes |
@@ -256,6 +290,9 @@ erDiagram
   EQUIPMENTS ||--o{ REGULATORY_CONTROLS : "inspected via"
   MAINTENANCE_BUDGETS ||--o{ INTERVENTIONS : funds
   EQUIPMENTS ||--o| PURCHASE_REFERENCES : "sourced from (R7)"
+  FACULTIES ||--o{ DEPARTMENTS : manages
+  DEPARTMENTS ||--o{ ROOM_RESERVATIONS : "timetable for"
+  ACADEMIC_TERMS ||--o{ ROOM_RESERVATIONS : bounds
 ```
 
 ---
@@ -282,7 +319,10 @@ Escalation (unassigned ticket past X% of SLA) is a queued job — see `Phases.md
 ---
 
 ## 6. Open questions to confirm with the university (do not guess)
-- Exact SLA business‑day calendar (holidays, weekends) for "standard ≤ 5j".
+- Exact SLA business‑day calendar (holidays, weekends) for "standard ≤ 5j" — **note**: the
+  timetable grid's own day set (Sat–Thu) is now confirmed from the legacy app's seed data
+  (`ui-design.md` §9.5), but that resolves only the *timetable UI's* week, not this broader
+  SLA business‑day question, which stays open.
 - Monetary threshold above which N3/Rectorat approval and PAdES signature are mandatory
   (workflow says "PAdES si > seuil" but the seuil itself isn't given on this page).
 - Whether `regulatory_controls.performed_by` should become a real `users`/`vendors` relation

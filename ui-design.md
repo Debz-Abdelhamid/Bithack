@@ -97,7 +97,7 @@ role label in `[10px]` uppercase tracking-wider.
 | `/campus` | **CampusMap (MapLibre GL)** + building side panel: room list, weekly schedule grid per room | Custom Filament Page (Livewire) hosting the ported map — see §6 |
 | `/tickets` | **drag‑and‑drop Kanban board** + filter chips + stats footer (MTTR, SLA compliance, pending approval, critical flares) | Custom Livewire Kanban (see §6) inside a Filament Page; evaluate `mokhosh/filament-kanban` first per `Phases.md` Phase 7 |
 | `/tickets/[id]` | ticket detail: activity timeline, comment + photo modals, QR-scan description block | Resource `MaintenanceTicket` → View + relation manager for interventions/activity |
-| `/reservations` | **custom weekly timetable grid** (`calendar-grid`), filters Faculté→Département→Spécialité, week nav, slot statuses confirmed/pending/changed | Custom Filament Page (calendar/timetable Livewire component); reservations Resource for CRUD. Grid renders both `source` kinds (`Schema.md` §2.7) together: **`timetable` slots entered by N2 (own faculty) / A3 (shared rooms), directly `confirmed`** — the faculty's emploi du temps; **`request` slots initiated by Enseignant** (ad‑hoc/one‑off, `pending` until N2/A3 confirms). *(2026‑07‑06, reversing the 2026‑07‑04 "Enseignant-only" policy — teachers keep ad‑hoc requests, not recurring‑slot authorship.)* `tout_utilisateur` sees the combined grid read‑only. |
+| `/reservations` | **custom weekly timetable grid** (`calendar-grid`), filters Faculté→Département→Spécialité, week nav, slot statuses confirmed/pending/changed | Split across three surfaces (Phase 5 addendum, 2026-07-06): `RoomReservationResource` (N2/A3 table — confirm/reject ad-hoc requests, list/edit timetable rows); `TimetableBuilder` custom page — **the visual grid, ported as-is** (6 fixed periods × Sat–Thu columns from `data.ts`'s exact seed values, §9.5), the primary way N2 (own faculty's departments) / A3 fills a department's timetable for a picked Academic Term, with a side "Add to timetable" panel matching the legacy `ReservationsView.tsx`'s Assignment Builder panel; `RequestReservation` — Enseignant's ad-hoc/one-off booking form. **`timetable` slots entered directly `confirmed`** — the faculty's emploi du temps; **`request` slots** ad-hoc, `pending` until N2/A3 confirms. `tout_utilisateur`/everyone sees the read-only `ReservationAvailability` grid (room-based, not department-based). |
 | `/report/[code]` | **QR landing page, mobile-first**: auth-gated, shows asset summary + status badge, one-textarea report form, duplicate-ticket guard ("Already Reported" if active ticket), success screen with ticket ref | Plain Blade/Livewire route **outside** the admin panel, heavily rate-limited (`Security.md` §5) |
 | `/purchases`, `/purchases/[id]`, `/purchases/[id]/print` | R7-ish module: suppliers, purchase requests, orders, reception PVs, print view w/ QR | **Out of R13 scope** — maps to Phase 10 integration stubs (`purchase_references`); do not rebuild the full module |
 | `/settings` | user management (N3 only) | Filament user/role management via `filament-shield` UI |
@@ -235,11 +235,17 @@ JSON snapshots under `apps/web/public/api/*`.
 | `Faculty` | `faculties` | |
 
 ### 9.5 Data points for open questions (`Schema.md` §6 — still `TODO(confirm)`, do not decide)
-- Old app's week: Prisma `WeekDay` enum = `Sat…Thu` (Algerian working week, Friday off) but the UI
-  grid showed `Lun…Sam` (Mon–Sat) — the old app itself was inconsistent. Relevant to the SLA
-  business-day calendar question; needs university confirmation.
-- Old reservation slots: 6 fixed daily periods `08:00–09:30 … 16:30–17:45` — useful default grid for
-  the new calendar UI, but new schema stays timestamp-based.
+- Old app's week — **corrected 2026-07-06** (direct read of
+  `apps/web/src/features/reservations/data.ts`'s exported `weekDays` constant, actually driving
+  the `/reservations` grid, rather than the earlier note's secondhand impression): the UI grid
+  genuinely renders `Sat, Sun, Mon, Tue, Wed, Thu` — it **matches** the Prisma `WeekDay` enum
+  (Algerian working week, Friday off), it was not inconsistent after all. This resolves the day
+  set for the **timetable grid UI** specifically (ported as-is in Phase 5's `TimetableBuilder`,
+  see §5); the broader **SLA business-day calendar** question (holidays, exact working-day
+  arithmetic) is a separate matter and stays open (`Schema.md` §6).
+- Old reservation slots: 6 fixed daily periods `08:00–09:30 … 16:30–17:45` — ported as-is into
+  `TimetableBuilder`'s grid rows (Phase 5 addendum, 2026-07-06); the underlying schema stays
+  timestamp-based (`room_reservations.start_at/end_at`), the fixed slots are a UI-layer concept.
 - No monetary threshold for PAdES/N3 found anywhere in the old app (its `ReceptionPV` had no
   threshold logic) — confirms the seuil remains an open question.
 

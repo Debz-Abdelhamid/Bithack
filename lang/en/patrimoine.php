@@ -47,6 +47,14 @@ return [
             'label' => 'Reservation',
             'plural' => 'Reservations',
         ],
+        'department' => [
+            'label' => 'Department',
+            'plural' => 'Departments',
+        ],
+        'academic_term' => [
+            'label' => 'Academic term',
+            'plural' => 'Academic terms',
+        ],
     ],
 
     'sections' => [
@@ -159,6 +167,7 @@ return [
         'end_at' => 'End',
         'repeat_weekly' => 'Repeat weekly',
         'repeat_until' => 'Repeat until',
+        'repeat_weekly_term_help' => 'Runs every week until the selected Academic Term\'s end date.',
         'confirm' => 'Confirm',
         'reject' => 'Reject',
         'rejection_reason' => 'Reason (optional)',
@@ -166,6 +175,16 @@ return [
         'reservation_subject' => 'Subject',
         'add_timetable_slot' => 'Add timetable slot',
         'cancel_reservation' => 'Cancel reservation',
+        'academic_year' => 'Academic year',
+        'semester' => 'Semester',
+        'semester_1' => 'Semester 1',
+        'semester_2' => 'Semester 2',
+        'label' => 'Label',
+        'term_label_help' => 'Leave blank to auto-generate from the academic year and semester.',
+        'academic_term' => 'Academic term',
+        'day' => 'Day',
+        'time_slot' => 'Time slot',
+        'request_department_help' => 'Optional — the department this course belongs to, if applicable.',
     ],
 
     'reservation_sources' => [
@@ -217,6 +236,27 @@ return [
         'rate_limited' => 'Too many requests — try again in :seconds seconds.',
         'slot_taken' => 'This room is already booked for that time.',
         'request_submitted' => 'Your request has been submitted and is awaiting approval.',
+    ],
+
+    'timetable' => [
+        'nav_label' => 'Timetable builder',
+        'title' => 'Timetable builder',
+        'time_slot' => 'Time slot',
+        'add_slot' => 'Add to timetable',
+        'empty_slot' => 'No class',
+        'slot_added' => 'Slot added to the timetable.',
+        'slot_cancelled' => 'Slot cancelled.',
+        'cancel_confirm' => 'Cancel this recurring slot for the whole term?',
+        'missing_context' => 'Select a department and an academic term first.',
+    ],
+
+    'week_days' => [
+        'Sat' => 'Sat',
+        'Sun' => 'Sun',
+        'Mon' => 'Mon',
+        'Tue' => 'Tue',
+        'Wed' => 'Wed',
+        'Thu' => 'Thu',
     ],
 
     'service_types' => [

@@ -88,6 +88,21 @@ Security gate and Performance gate described there.
   `source`; N2 (or A3 for central/shared rooms) can enter/edit their timetable directly and
   can confirm/reject pending ad‑hoc requests within their scope.
 
+### Phase 5 addendum (2026‑07‑06, owner-requested)
+- **`departments`** (belongs to a faculty) and **`academic_terms`** (year split into 2
+  semesters) become real referentials — a faculty manages several departments and fills each
+  one's timetable one term at a time. N2 manages their own faculty's departments; A3 manages
+  every department and owns the university‑wide `academic_terms` list.
+- **Visual timetable grid** (`TimetableBuilder` page) — N2/A3 pick a department + academic
+  term and fill a weekly grid (6 fixed periods × Sat–Thu columns, ported from the legacy
+  app's exact seed data) instead of a plain form list; the plain `RoomReservationResource`
+  create form still works underneath (shared `TimetableSlotService`) but the grid is the
+  primary entry point. A weekly slot's recurrence now runs to its Academic Term's `end_date`
+  — the arbitrary "repeat until" date + month cap is gone.
+- **Definition of Done (addendum):** a faculty's timetable is visibly organized by department
+  and academic term; entering a slot from the grid produces the same term‑bound weekly series
+  as the plain form; N2 cannot fill another faculty's department's timetable.
+
 ## Phase 6 — Anomaly reporting → automatic ticket creation
 **Goal:** Étape 4 — "Scan QR du bien → ticket créé automatiquement."
 - Public (authenticated, but lightweight/mobile‑first) scan endpoint resolving `qr_codes.token` → prefilled ticket form → `maintenance_tickets` row created with `source = qr_scan`, priority defaulted per category rules.

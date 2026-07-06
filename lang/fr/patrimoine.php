@@ -47,6 +47,14 @@ return [
             'label' => 'Réservation',
             'plural' => 'Réservations',
         ],
+        'department' => [
+            'label' => 'Département',
+            'plural' => 'Départements',
+        ],
+        'academic_term' => [
+            'label' => 'Semestre académique',
+            'plural' => 'Semestres académiques',
+        ],
     ],
 
     'sections' => [
@@ -159,6 +167,7 @@ return [
         'end_at' => 'Fin',
         'repeat_weekly' => 'Répéter chaque semaine',
         'repeat_until' => 'Jusqu\'au',
+        'repeat_weekly_term_help' => 'Se répète chaque semaine jusqu\'à la date de fin du semestre sélectionné.',
         'confirm' => 'Confirmer',
         'reject' => 'Refuser',
         'rejection_reason' => 'Motif (facultatif)',
@@ -166,6 +175,16 @@ return [
         'reservation_subject' => 'Objet',
         'add_timetable_slot' => 'Ajouter un créneau',
         'cancel_reservation' => 'Annuler la réservation',
+        'academic_year' => 'Année académique',
+        'semester' => 'Semestre',
+        'semester_1' => 'Semestre 1',
+        'semester_2' => 'Semestre 2',
+        'label' => 'Libellé',
+        'term_label_help' => 'Laisser vide pour générer automatiquement à partir de l\'année et du semestre.',
+        'academic_term' => 'Semestre académique',
+        'day' => 'Jour',
+        'time_slot' => 'Créneau horaire',
+        'request_department_help' => 'Facultatif — le département concerné par ce cours, le cas échéant.',
     ],
 
     'reservation_sources' => [
@@ -217,6 +236,27 @@ return [
         'rate_limited' => 'Trop de demandes — réessayez dans :seconds secondes.',
         'slot_taken' => 'Ce local est déjà réservé pour ce créneau.',
         'request_submitted' => 'Votre demande a été envoyée et attend une approbation.',
+    ],
+
+    'timetable' => [
+        'nav_label' => 'Emploi du temps',
+        'title' => 'Emploi du temps',
+        'time_slot' => 'Créneau horaire',
+        'add_slot' => 'Ajouter au planning',
+        'empty_slot' => 'Aucun cours',
+        'slot_added' => 'Créneau ajouté à l\'emploi du temps.',
+        'slot_cancelled' => 'Créneau annulé.',
+        'cancel_confirm' => 'Annuler ce créneau récurrent pour tout le semestre ?',
+        'missing_context' => 'Sélectionnez d\'abord un département et un semestre académique.',
+    ],
+
+    'week_days' => [
+        'Sat' => 'Sam',
+        'Sun' => 'Dim',
+        'Mon' => 'Lun',
+        'Tue' => 'Mar',
+        'Wed' => 'Mer',
+        'Thu' => 'Jeu',
     ],
 
     'service_types' => [
