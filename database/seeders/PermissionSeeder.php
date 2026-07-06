@@ -28,7 +28,7 @@ class PermissionSeeder extends Seeder
 
         $fullPatrimoine = [];
 
-        foreach (['Building', 'Local', 'Equipment', 'PurchaseReference', 'Assignment'] as $model) {
+        foreach (['Building', 'Local', 'Equipment', 'PurchaseReference', 'Assignment', 'RoomReservation'] as $model) {
             foreach (self::RESOURCE_METHODS as $method) {
                 $fullPatrimoine[] = Permission::findOrCreate("{$method}:{$model}", 'web')->name;
             }
@@ -36,9 +36,20 @@ class PermissionSeeder extends Seeder
 
         $campusMap = Permission::findOrCreate('View:CampusMap', 'web')->name;
 
+        // Read-only weekly availability grid (Phase 5) — same "public
+        // campus" tier as the map, granted independently of the admin
+        // RoomReservation resource below.
+        $reservationAvailability = Permission::findOrCreate('View:ReservationAvailability', 'web')->name;
+
         // Operational label printing (marks the QR as printed) — its own
         // permission so it stays delegable without write access.
         $printLabel = Permission::findOrCreate('PrintLabel:Equipment', 'web')->name;
+
+        // Phase 5 reservation abilities beyond the standard CRUD set —
+        // faculty-authored timetable entry and ad-hoc request handling.
+        $manageTimetable = Permission::findOrCreate('ManageTimetable:RoomReservation', 'web')->name;
+        $approveReservation = Permission::findOrCreate('Approve:RoomReservation', 'web')->name;
+        $cancelReservation = Permission::findOrCreate('Cancel:RoomReservation', 'web')->name;
 
         // Escape hatch for a future faculty-affiliated-but-global user
         // (FacultyScope) — exists as data, granted to nobody by default.
@@ -50,6 +61,7 @@ class PermissionSeeder extends Seeder
             'ViewAny:Equipment', 'View:Equipment',
             'ViewAny:PurchaseReference', 'View:PurchaseReference',
             'ViewAny:Assignment', 'View:Assignment',
+            'ViewAny:RoomReservation', 'View:RoomReservation',
         ];
 
         // N2 administers affectations inside their faculty (matrix:
@@ -57,21 +69,47 @@ class PermissionSeeder extends Seeder
         // (revoke/correct), never delete: history stays A3's call.
         $n2Assignments = ['Create:Assignment', 'Update:Assignment'];
 
+        // N2 administers reservations inside their faculty (matrix:
+        // "approve for their faculty: ... reservations") — enters their
+        // own timetable directly + approves/rejects ad-hoc requests;
+        // never deletes (cancel is the reversible equivalent).
+        $n2Reservations = [
+            'Create:RoomReservation', 'Update:RoomReservation',
+            $manageTimetable, $approveReservation,
+        ];
+
         // A3 — full CRUD on the inventory referential (matrix: "full CRUD inventory").
         Role::findByName(RoleName::GESTIONNAIRE_PATRIMOINE, 'web')
-            ->givePermissionTo([...$fullPatrimoine, $campusMap, $printLabel]);
+            ->givePermissionTo([
+                ...$fullPatrimoine, $campusMap, $printLabel, $reservationAvailability,
+                $manageTimetable, $approveReservation, $cancelReservation,
+            ]);
 
         // N2 — sees their faculty's patrimoine (FacultyScope narrows the queries).
         Role::findByName(RoleName::RESPONSABLE_FACULTE, 'web')
-            ->givePermissionTo([...$readOnlyPatrimoine, ...$n2Assignments, $campusMap]);
+            ->givePermissionTo([
+                ...$readOnlyPatrimoine, ...$n2Assignments, ...$n2Reservations,
+                $campusMap, $reservationAvailability,
+            ]);
 
         // N3 — university-wide read visibility.
         Role::findByName(RoleName::RECTORAT, 'web')
-            ->givePermissionTo([...$readOnlyPatrimoine, $campusMap]);
+            ->givePermissionTo([...$readOnlyPatrimoine, $campusMap, $reservationAvailability]);
 
         // Everyone may look at the campus map — the physical campus is public.
         Role::findByName(RoleName::SERVICE_TECHNIQUE, 'web')->givePermissionTo($campusMap);
-        Role::findByName(RoleName::ENSEIGNANT, 'web')->givePermissionTo($campusMap);
-        Role::findByName(RoleName::TOUT_UTILISATEUR, 'web')->givePermissionTo($campusMap);
+
+        // Enseignant — the only ad-hoc request-initiator role (matrix): no
+        // admin-resource browsing (no ViewAny/View:RoomReservation), just
+        // the ability to create a `request` row, cancel their own, and see
+        // the read-only availability grid before requesting.
+        Role::findByName(RoleName::ENSEIGNANT, 'web')->givePermissionTo([
+            $campusMap, $reservationAvailability, 'Create:RoomReservation', $cancelReservation,
+        ]);
+
+        // Tout utilisateur — read-only timetable/availability per the
+        // matrix; booking initiation removed 2026-07-04.
+        Role::findByName(RoleName::TOUT_UTILISATEUR, 'web')
+            ->givePermissionTo([$campusMap, $reservationAvailability]);
     }
 }

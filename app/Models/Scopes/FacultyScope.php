@@ -6,6 +6,7 @@ use App\Models\Assignment;
 use App\Models\Building;
 use App\Models\Equipment;
 use App\Models\Local;
+use App\Models\RoomReservation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -79,6 +80,17 @@ class FacultyScope implements Scope
                         $inner->whereNull('equipment_id')->whereHas('local');
                     });
             });
+
+            return;
+        }
+
+        // Reservations guard the ADMIN resource surface only (N2 managing
+        // their faculty's timetable/approvals). The public availability
+        // grid and the Enseignant request form deliberately bypass this
+        // scope with withoutGlobalScope() — the physical campus is public
+        // and teachers request campus-wide (Phases.md Phase 5).
+        if ($model instanceof RoomReservation) {
+            $builder->whereHas('local');
         }
     }
 }

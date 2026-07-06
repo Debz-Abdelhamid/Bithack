@@ -7,6 +7,9 @@ use App\Enums\EquipmentCondition;
 use App\Enums\EquipmentStatus;
 use App\Enums\LocalStatus;
 use App\Enums\LocalType;
+use App\Enums\ReservationLevel;
+use App\Enums\ReservationSource;
+use App\Enums\ReservationStatus;
 use App\Enums\ServiceType;
 use App\Models\Assignment;
 use App\Models\Building;
@@ -14,10 +17,12 @@ use App\Models\Equipment;
 use App\Models\Faculty;
 use App\Models\Local;
 use App\Models\PurchaseReference;
+use App\Models\RoomReservation;
 use App\Models\Service;
 use App\Models\User;
 use App\Support\RoleName;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 
 /**
  * Obviously-fake demo data (Claude.md §6 — no real university/personal data).
@@ -75,6 +80,7 @@ class DemoSeeder extends Seeder
         $this->seedCampus($technology, $sciences);
         $this->seedEquipments();
         $this->seedAssignments();
+        $this->seedReservations();
     }
 
     /**
@@ -185,6 +191,54 @@ class DemoSeeder extends Seeder
             [
                 'assigned_by_user_id' => $a3->id,
                 'notes' => 'Demo assignment.',
+            ],
+        );
+    }
+
+    /**
+     * One `timetable` slot (N2-authored, confirmed) + one `request`
+     * (Enseignant ad-hoc, pending) — illustrates the 2026-07-06 split.
+     * Dates are relative ("next Monday/Tuesday") so re-seeding never lands
+     * in the past.
+     */
+    private function seedReservations(): void
+    {
+        $amphiA = Local::query()->where('code', 'A-101')->first();
+        $classroomA = Local::query()->where('code', 'A-102')->first();
+        $n2 = User::query()->where('email', 'n2@demo.ubma.dz')->first();
+        $teacher = User::query()->where('email', 'enseignant@demo.ubma.dz')->first();
+
+        if ($amphiA === null || $classroomA === null || $n2 === null || $teacher === null) {
+            return;
+        }
+
+        $nextMonday = Carbon::parse('next monday')->setTime(9, 0);
+
+        RoomReservation::query()->firstOrCreate(
+            ['local_id' => $amphiA->id, 'start_at' => $nextMonday],
+            [
+                'source' => ReservationSource::Timetable,
+                'requested_by_user_id' => $n2->id,
+                'teacher_user_id' => $teacher->id,
+                'module_name' => 'Algorithms 101 (demo)',
+                'level' => ReservationLevel::L1,
+                'end_at' => $nextMonday->copy()->addMinutes(90),
+                'recurring_rule' => 'WEEKLY;UNTIL='.$nextMonday->copy()->addMonths(4)->toDateString(),
+                'status' => ReservationStatus::Confirmed,
+            ],
+        );
+
+        $nextTuesday = Carbon::parse('next tuesday')->setTime(14, 0);
+
+        RoomReservation::query()->firstOrCreate(
+            ['local_id' => $classroomA->id, 'start_at' => $nextTuesday],
+            [
+                'source' => ReservationSource::Request,
+                'requested_by_user_id' => $teacher->id,
+                'teacher_user_id' => $teacher->id,
+                'purpose' => 'Makeup class (demo)',
+                'end_at' => $nextTuesday->copy()->addMinutes(90),
+                'status' => ReservationStatus::Pending,
             ],
         );
     }

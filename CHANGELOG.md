@@ -3,6 +3,76 @@
 All notable changes to the PUI-UBMA R13 Patrimoine module.
 Format: one entry per phase (see `Phases.md`), Conventional-Commit-style categories.
 
+## Phase 5 — Room reservations (2026-07-06)
+
+### Changed (owner decision, reverses part of the 2026-07-04 policy)
+- **Timetable authorship moved from teachers to the faculty**: the emploi du temps is now
+  entered directly by **N2 (own faculty's rooms) or A3 (central/shared rooms)** as confirmed
+  recurring slots, teacher picked from a dropdown — not requested by the teacher. Enseignant
+  keeps **ad-hoc/one-off requests** (makeup classes, defenses, meetings) in whatever gaps
+  remain, still routed through N2/A3 approval. Closed a routing gap this exposed: a
+  central/shared room (no owning N2) now falls back to A3 for both timetable ownership and
+  ad-hoc approval. Reflected across all five planning docs before implementation.
+
+### Added
+- `room_reservations` (Schema.md §2.7) with a **`source` enum** (`timetable`/`request`) and a
+  `teacher_user_id` column distinct from `requested_by_user_id` (who entered the row vs. who
+  it's for) — both additions beyond the original §2.7 listing, documented in Schema.md.
+  `recurring_group_id` (uuid) ties a generated weekly series together for bulk identification.
+- **Double-booking prevention, two layers**: a Postgres `EXCLUDE USING gist` constraint
+  (`btree_gist`, partial `WHERE status = 'confirmed'`) — verified live by hand-inserting a
+  raw overlapping row and watching Postgres reject it — plus a driver-agnostic
+  `RoomReservationObserver` guard (throws before any confirmed overlap is saved, on every
+  driver, including outside Filament's own forms).
+- **Timetable entry** (`RoomReservationResource`, N2/A3 only — no `ViewAny`/`View` for
+  Enseignant): single or **weekly-recurring** slots (generated as one row per week, sharing
+  `recurring_group_id`; the whole series is pre-validated for conflicts before anything is
+  persisted — one bad week blocks the entire series, never a partial save). N2's room picker
+  is restricted to their own faculty's non-shared rooms; a scoped-exists form rule rejects a
+  forged foreign/shared room id server-side even if the UI is bypassed.
+- **`ReservationApprovalService`**: confirm (re-checks for a confirmed overlap that appeared
+  in the meantime; auto-rejects other pending requests competing for the same room/time —
+  PROGRESS.md open question #5's working default) / reject (optional reason) /
+  notifyApprover (routes to the room's-faculty N2, or A3 for a central/shared room).
+- **`RequestReservation`** custom page (Enseignant-only nav item — hidden from N2/A3, who
+  already hold `Create:RoomReservation` for their own admin flow): campus-wide room search
+  (their own `faculty_id` never filters the catalog), course-vs-non-course conditional
+  validation (level required with a module; purpose required without one), attendees ≤ room
+  capacity, per-user hourly rate limit (`PATRIMO_RESERVATION_REQUEST_MAX_PER_HOUR`, mirrors
+  the registration per-IP throttle pattern), "my requests" list with self-service cancel.
+- **`ReservationAvailability`** custom page: read-only weekly grid, every role, confirmed
+  reservations only, deliberately bypasses FacultyScope (public campus information — same
+  precedent as the Phase 2 campus map).
+- Queued `SendReservationNotification` job (Security.md §7: payload-minimized — the stored
+  notification is the source of truth, the broadcast is a content-free "refresh your bell"
+  ping) for `request`-row events only, per Phases.md Phase 5 (`timetable` rows need no
+  notification — authorship by N2/A3 *is* the approval).
+- 25 new Pest tests (118 total): overlap detection/rejection, pending-pending coexistence,
+  A3/N2 timetable creation, cross-faculty and shared-room denial (server-side), recurring
+  series generation and all-or-nothing conflict handling, confirm/reject + auto-reject +
+  race-condition re-block, ad-hoc submission/validation/rate-limit/cancel, page-nav gating,
+  availability-grid content filtering.
+
+### Fixed (found during testing, before any release)
+- **Cross-faculty notification lookups silently failed**: `ReservationApprovalService` and
+  `RequestReservation::myRequests()` dereferenced `$reservation->local->building` — but
+  `Local` and `Building` carry their *own* `FacultyScope`, keyed to whoever is currently
+  authenticated, not the reservation's owner. A Sciences-affiliated teacher booking a
+  Technology room (explicitly allowed — campus-wide booking) would silently get a null
+  building mid-request, breaking approver routing. Fixed with explicit
+  `withoutGlobalScope(FacultyScope::class)` reads at both the `local` *and* nested `building`
+  eager-load levels — a good reminder that bypassing a scope on the outer query doesn't
+  bypass it on related models loaded through it.
+
+### Notes
+- Two conservative defaults **implemented but not yet confirmed with the university**
+  (PROGRESS.md open question #5): recurrence capped at 4 months
+  (`PATRIMO_RESERVATION_MAX_RECURRENCE_MONTHS`), and confirming a pending request
+  auto-rejects other pending competitors for the same slot.
+- Migration reversibility verified; the exclusion constraint requires `btree_gist`
+  (auto-created via `CREATE EXTENSION IF NOT EXISTS`) — Postgres only, sqlite/tests rely on
+  the observer.
+
 ## Phase 4 — Affectations (2026-07-06)
 
 ### Added
