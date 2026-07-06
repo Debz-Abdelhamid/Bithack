@@ -130,11 +130,25 @@ integration points it references (R7 achats, R9 calendrier, R10 finances).
 | notes | text, nullable | |
 
 ### 2.7 `room_reservations` (Réservations de salle)
+
+**Two kinds, one table** *(decision 2026‑07‑06 — see `Security.md` §3, `Phases.md` Phase 5)*:
+- **`timetable`** — the faculty's emploi du temps. Entered directly as `confirmed` by N2
+  (their own faculty's rooms) or A3 (central/shared rooms); the teacher is picked from a
+  dropdown of Enseignant accounts, never typed. This reverses the 2026‑07‑04 wording
+  ("recurring slots initiated by teachers") — teachers no longer author their own recurring
+  course slots.
+- **`request`** — Enseignant‑initiated ad‑hoc/one‑off bookings (makeup classes, defenses,
+  meetings) filling whatever gaps remain in the timetable. Starts `pending`; approved by the
+  room's‑faculty N2, or **A3 for a central/shared room** (no N2 owns it — gap closed
+  2026‑07‑06).
+
 | Column | Type | Notes |
 |---|---|---|
 | id | bigint pk | |
 | local_id | fk → locals | |
-| requested_by_user_id | fk → users | Enseignant only (booking-initiator role — policy 2026-07-04); recurring course slots supported. **Requester name/faculty always come from this FK — never typed into the form** |
+| source | enum: `timetable, request` | drives who may create the row, its initial status, and the notification flow — see split above |
+| requested_by_user_id | fk → users | who **submitted/entered** this row: N2 or A3 for `timetable`, the Enseignant themself for `request`. **Never typed — always the authenticated account or an explicit picker** |
+| teacher_user_id | fk → users, nullable | the teacher this course slot is **for** — required whenever `module_name` is set, regardless of source. Equals `requested_by_user_id` for a teacher's own `request`; explicitly selected by N2/A3 for `timetable` rows (picker over Enseignant accounts, never free text) |
 | module_name | string, nullable | *(added 2026-07-05, owner requirement)* course/module being taught — required by the form for course bookings |
 | level | string, nullable | L1/L2/L3/M1/M2/Doctorate/Other (PHP enum) — required by the form for course bookings |
 | department | string, nullable | free text for now; `TODO(confirm)`: becomes a FK when the R9 academic referential (departments/specialities) exists |
@@ -142,13 +156,14 @@ integration points it references (R7 achats, R9 calendrier, R10 finances).
 | attendees_count | smallint, nullable | validated ≤ `locals.capacity` at request time |
 | purpose | string, nullable | for non-course bookings (meetings, defenses…) |
 | start_at / end_at | timestamp | indexed together for overlap checks |
-| recurring_rule | string, nullable | RRULE-style, for teachers' weekly course slots |
-| status | enum: `pending, confirmed, rejected, cancelled` | |
-| approved_by_user_id | fk → users, nullable | the N2 of the **room's** faculty (routing rule 2026-07-05) |
+| recurring_rule | string, nullable | RRULE-style, for `timetable` weekly course slots |
+| status | enum: `pending, confirmed, rejected, cancelled` | `timetable` rows are created directly as `confirmed` (no separate approval step — authorship by N2/A3 **is** the approval); `request` rows start `pending` |
+| approved_by_user_id | fk → users, nullable | `request` rows only — the room's‑faculty N2, or A3 for central/shared rooms (routing rule, `Security.md` §3). Stays NULL on `timetable` rows |
 | external_calendar_ref | string, nullable | **lien R9** calendrier partagé |
 
 Add a DB‑level exclusion constraint (or app‑level check) preventing overlapping **confirmed**
-reservations on the same `local_id`.
+reservations on the same `local_id` — checked across **both** `source` kinds together (a
+confirmed timetable slot blocks an overlapping request, and vice versa).
 
 ### 2.8 `maintenance_tickets`
 | Column | Type | Notes |

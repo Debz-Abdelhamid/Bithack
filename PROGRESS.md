@@ -26,12 +26,13 @@
 ## Decision log (owner decisions, dated — do not re-litigate)
 
 - **2026-07-04** Realtime = **Reverb** (self-hosted, Pusher protocol), notifications only, minimal payloads.
-- **2026-07-04** **Booking initiation = Enseignant only**; `tout_utilisateur` = read-only timetable + QR reporting. N2 approves, A3 administers.
+- **2026-07-04** **Booking initiation = Enseignant only**; `tout_utilisateur` = read-only timetable + QR reporting. N2 approves, A3 administers. *(Superseded 2026-07-06 for recurring slots — see below; ad-hoc requests still Enseignant-only.)*
 - **2026-07-04** Self-registration: institutional domains only, verified, throttled, auto `tout_utilisateur`. Provisioned accounts pre-verified.
 - **2026-07-05** English-first UI (reversal of French-first; strings stay in lang files). Timezone Africa/Algiers.
 - **2026-07-05** `faculty_id` semantics: **N2 = required authorization boundary** (form-enforced); teacher/user = affiliation only, never filters rooms; empty = central. **Approval routes to the ROOM's faculty N2**, not the requester's.
 - **2026-07-05** Phase 5 form fields: requester read-only from account; module + level required for course bookings; department free-text until R9; attendees ≤ room capacity (Schema.md §2.7).
-- **2026-07-06** Emploi du temps = confirmed recurring reservations (no separate timetable entity — the academic referential is R9's, ui-design.md §9.4). Initial semester fill is **strictly teacher-initiated** (owner deferred to the rules: keeps the locked 2026-07-04 booking decision, least privilege, honest `requested_by` audit trail). See open question 7 for the possible top-down entry mode.
+- **2026-07-06** Emploi du temps = confirmed recurring reservations (no separate timetable entity — the academic referential is R9's, ui-design.md §9.4).
+- **2026-07-06 (superseding the entry above)** Owner corrected the direction: the timetable is **faculty-authored, not teacher-authored**. `room_reservations` gets a `source` enum (`timetable`/`request`, Schema.md §2.7): **N2 enters/edits their own faculty's recurring course slots directly as `confirmed`** (teacher picked from a dropdown, never typed); **A3 does the same for central/shared rooms** (gap closed: shared rooms have no N2 to own them). **Enseignant keeps ad-hoc/one-off `request` bookings** (makeup classes, defenses, meetings) in whatever gaps remain — still `pending` until the room's-faculty N2 (or A3 for shared rooms) approves. This reverses the 2026-07-04 "recurring slots initiated by teachers" wording while keeping teachers as the sole ad-hoc requesters. Reflected in `Security.md` §3, `Schema.md` §2.7, `Phases.md` Phase 5, `ui-design.md` §5.
 
 ## Open questions (`TODO(confirm)` — never guess)
 
@@ -39,9 +40,8 @@
 2. Monetary threshold triggering N3 approval + PAdES signature (Phases 8/10).
 3. Definitive registration domain list (student subdomains?) — `PATRIMO_REGISTRATION_DOMAINS`.
 4. Department field → FK when R9 academic referential exists.
-5. Phase 5 defaults awaiting confirmation: recurrence ends at teacher-picked date (≤ ~4 months); N2 sees all conflicting pending requests, confirming one auto-rejects overlaps.
+5. Phase 5 defaults awaiting confirmation: `timetable` recurrence ends at an N2/A3-picked date (≤ ~4 months, mirrors the academic term); N2 sees all conflicting pending `request` rows, confirming one auto-rejects overlaps.
 6. Affectation semantics (Phase 4, Schema.md §2.6): an equipment assignment with a destination room also moves the asset (`equipments.local_id` synced) — permissive reading of §1; confirm whether affectation and physical relocation should be strictly separate operations instead.
-7. Timetable bulk entry (raised 2026-07-06): does UBMA want a **top-down mode** where a faculty scheduling officer (N2 or delegate) enters the whole semester timetable directly as confirmed slots, in addition to teacher-initiated requests? Default shipped in Phase 5 = teacher-initiated only (locked 2026-07-04 decision). If yes later: it needs an explicit new permission + a decision on how `requested_by` is recorded for slots entered on a teacher's behalf.
 
 ## Operational notes
 
@@ -55,11 +55,15 @@
 
 ## Next
 
-**Phase 5 — Room reservations** (Phases.md): `room_reservations` + overlap prevention
-(pg exclusion constraint or app-level check), weekly timetable UI (ported grid),
-**Enseignant-only booking** (campus-wide catalog — `FacultyScope` deliberately bypassed),
-approval routed to the **room's** faculty N2, request-form fields per Schema.md §2.7
-(requester read-only, module + level required for course bookings, attendees ≤ capacity),
-booking-endpoint rate limit, realtime notifications (requester + approver). Open defaults
-to confirm before/while building: recurrence end rule and conflicting-pending handling
-(PROGRESS "Open questions" #5). **Waiting for owner go.**
+**Phase 5 — Room reservations** (Phases.md): `room_reservations` with a **`source`
+(`timetable`/`request`) split** (2026-07-06 decision) + overlap prevention across both kinds
+(pg exclusion constraint or app-level check), weekly timetable UI (ported grid).
+**`timetable`**: N2 enters/edits their own faculty's recurring slots directly as `confirmed`
+(teacher picked from a dropdown); A3 does the same for central/shared rooms. **`request`**:
+Enseignant-only ad-hoc/one-off bookings (campus-wide catalog — `FacultyScope` deliberately
+bypassed), approved by the room's-faculty N2 or A3 for shared rooms, form fields per
+Schema.md §2.7 (requester read-only, module + level required for course bookings,
+attendees ≤ capacity), booking-endpoint rate limit, realtime notifications (requester +
+approver, `request` rows only). Open defaults to confirm before/while building: `timetable`
+recurrence end rule and conflicting-pending `request` handling (PROGRESS "Open questions" #5).
+**Waiting for owner go.**

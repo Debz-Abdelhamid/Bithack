@@ -43,11 +43,11 @@ reporting. Per your instruction, the role set is exactly that, plus **Enseignant
 
 | Role | Source | Scope in R13 |
 |---|---|---|
-| Gestionnaire Patrimoine (A3) | explicit | full CRUD inventory, affectations, ticket oversight, closes tickets |
-| Responsable Faculté (N2) | explicit | approve for their faculty: affectations, reservations, standard PV |
+| Gestionnaire Patrimoine (A3) | explicit | full CRUD inventory, affectations, ticket oversight, closes tickets; **enters/maintains the timetable of central/shared rooms** (faculty‑less buildings — decision 2026‑07‑06) |
+| Responsable Faculté (N2) | explicit | approve for their faculty: affectations, reservations, standard PV; **enters/maintains their faculty's timetable (emploi du temps)** — recurring course slots created directly as `confirmed`, naming the teacher (decision 2026‑07‑06) |
 | Rectorat / Direction (N3) | explicit | approve grands travaux, high‑value budgets, N3‑threshold PV |
 | Service technique | explicit (Étape 5) | plans and carries out interventions on tickets |
-| Enseignant (teacher) | added at your request | **book rooms/labs (incl. recurring course slots)** — the only booking-initiator role; report anomalies |
+| Enseignant (teacher) | added at your request | **request ad‑hoc/one‑off bookings** in free slots (makeup classes, defenses, meetings) — the only request‑initiator role; report anomalies. *(2026‑07‑06: recurring course slots moved to the faculty‑entered timetable — see N2/A3; this narrows the 2026‑07‑04 "incl. recurring course slots" wording.)* |
 | Tout utilisateur (staff/students, generic) | explicit | **read-only**: view timetables (emploi du temps) & room availability; report anomalies via QR scan. *(Changed 2026-07-04 by project owner: booking initiation removed — the source doc granted it, but UBMA policy reserves booking for teachers. N2 approval and A3 administration of reservations are unchanged.)* |
 
 No student/technician/finance/compliance role split beyond this — implement as configurable
@@ -72,7 +72,18 @@ extra actor in your workflow diagrams.
   - **A3 / N3 / super admin / service technique**: left empty = central, university‑wide scope.
   - **Reservation approval routing (Phase 5) follows the ROOM's faculty** (via its building),
     not the requester's — a Sciences teacher booking a Technology amphi is approved by
-    Technology's N2.
+    Technology's N2. **For a central/shared room** (building `faculty_id` NULL, no N2 owns
+    it), **A3 is the approver of last resort** *(gap closed 2026‑07‑06 — the routing rule
+    never covered the no‑faculty case until the timetable‑ownership decision below forced
+    it into the open)*.
+  - **Timetable entry (Phase 5) is faculty‑authored, not teacher‑authored** *(decision
+    2026‑07‑06, reversing the 2026‑07‑04 "recurring slots initiated by teachers" wording)*:
+    N2 enters/edits their own faculty's recurring course slots directly as `confirmed`
+    (their FacultyScope‑visible rooms, excluding shared ones); A3 owns central/shared rooms'
+    timetables the same way. Teachers keep the ability to **request** ad‑hoc/one‑off slots
+    (makeup classes, defenses, meetings) in whatever gaps remain — those still start
+    `pending` and go through the routing rule above. See `Schema.md` §2.7 and `Phases.md`
+    Phase 5 for the `source` (`timetable`/`request`) split this implies.
 - Principle of least privilege by default: a new role starts with **zero** permissions, granted explicitly.
 
 ---

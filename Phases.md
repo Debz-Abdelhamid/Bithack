@@ -56,23 +56,37 @@ Security gate and Performance gate described there.
 
 ## Phase 5 — Room reservations
 **Goal:** Étape 3 — booking with live availability, confirmation, and R9 calendar link.
-- `room_reservations` table, overlap‑prevention logic, calendar UI (see `ui-design.md` §5).
-- **Booking initiation is Enseignant‑only** (one‑off + recurring weekly course slots); N2 (or
-  delegate) approves; A3 administers. `tout_utilisateur` gets a **read‑only** timetable /
-  availability view (emploi du temps) — no booking form. *(Policy set 2026‑07‑04 by project
-  owner, overriding the source doc's "tout utilisateur books common rooms".)*
-- **Teachers search/request campus‑wide** — their own `faculty_id` never filters the catalog
-  (affiliation metadata only). **Approval routes to the N2 of the ROOM's faculty** (via its
-  building), not the requester's faculty. *(Clarified 2026‑07‑05, see `Security.md` §3.)*
+- `room_reservations` table, overlap‑prevention logic (across both kinds below), calendar UI
+  (see `ui-design.md` §5).
+- **Two reservation kinds** (`source` enum, `Schema.md` §2.7) — *(decision 2026‑07‑06,
+  reversing the 2026‑07‑04 "Enseignant books incl. recurring slots" policy)*:
+  - **`timetable`** — the faculty's emploi du temps. **N2 enters/edits their own faculty's
+    recurring course slots directly as `confirmed`** (rooms visible under their FacultyScope,
+    excluding shared ones); **A3 does the same for central/shared rooms**. The teacher is
+    picked from a dropdown of Enseignant accounts, never typed — this is how "each faculty
+    fills her timetable first" happens, before any ad‑hoc booking has anywhere to go.
+  - **`request`** — **Enseignant‑initiated ad‑hoc/one‑off bookings** (makeup classes,
+    defenses, meetings) in whatever gaps remain. Starts `pending`; approved by the N2 of the
+    **room's** faculty, or **A3 when the room is central/shared** (no N2 owns it — gap closed
+    2026‑07‑06, see `Security.md` §3). `tout_utilisateur` still gets a **read‑only** view of
+    the combined grid — no booking form for either kind.
+- **Teachers search/request campus‑wide for ad‑hoc bookings** — their own `faculty_id` never
+  filters the catalog (affiliation metadata only). *(Clarified 2026‑07‑05, see `Security.md` §3.)*
 - **Request form fields (owner requirement 2026‑07‑05):** requester name/faculty shown
-  read‑only from the authenticated account (never typed); module name + level (L1…Doctorate)
-  required for course bookings; department (free text until R9); optional student group;
-  expected attendees **validated against room capacity**; date/time or weekly recurrence;
-  optional purpose/notes for non‑course bookings. See `Schema.md` §2.7.
-- Rate limit the booking endpoint to prevent slot‑spamming.
-- Realtime notifications (database + broadcast, queued): requester notified when their
-  reservation is confirmed/rejected; approver (N2/delegate) notified of new pending requests.
-- **Definition of Done:** two users cannot double‑book the same room/time; N2 (or delegated approver) can confirm/reject pending requests.
+  read‑only from the authenticated account (never typed) for `request` rows; module name +
+  level (L1…Doctorate) required for course bookings on either kind; department (free text
+  until R9); optional student group; expected attendees **validated against room capacity**;
+  date/time or weekly recurrence; optional purpose/notes for non‑course bookings. See
+  `Schema.md` §2.7.
+- Rate limit the `request` booking endpoint to prevent slot‑spamming — `timetable` entry is
+  an authenticated N2/A3 panel action, not a public‑facing high‑burst path.
+- Realtime notifications (database + broadcast, queued), **`request` rows only**: requester
+  notified when their reservation is confirmed/rejected; approver (room's‑faculty N2, or A3
+  for shared rooms) notified of new pending requests. No notification needed for a
+  `timetable` row — N2/A3 authored it directly as confirmed.
+- **Definition of Done:** two users cannot double‑book the same room/time regardless of
+  `source`; N2 (or A3 for central/shared rooms) can enter/edit their timetable directly and
+  can confirm/reject pending ad‑hoc requests within their scope.
 
 ## Phase 6 — Anomaly reporting → automatic ticket creation
 **Goal:** Étape 4 — "Scan QR du bien → ticket créé automatiquement."
