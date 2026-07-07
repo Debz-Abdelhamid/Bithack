@@ -78,6 +78,17 @@ class TimetableBuilder extends Page implements HasForms
 
     public ?int $academicTermId = null;
 
+    /**
+     * Grid filters (owner request, 2026-07-09): a department's timetable
+     * legitimately holds several parallel classes in the same day/time
+     * slot — different rooms and/or different student groups. These narrow
+     * the grid down to one level/group at a time instead of showing every
+     * card stacked in every cell.
+     */
+    public ?string $filterLevel = null;
+
+    public ?string $filterStudentGroup = null;
+
     /** @var array<string, mixed> */
     public ?array $data = [];
 
@@ -232,9 +243,15 @@ class TimetableBuilder extends Page implements HasForms
     /**
      * Grouped by recurring_group_id (or own id for a one-off row) so a
      * whole weekly series renders as a single card, keyed by
-     * "{dayOfWeek}-{timeSlotLabel}" for direct grid placement.
+     * "{dayOfWeek}-{timeSlotLabel}" for direct grid placement. A single
+     * cell can legitimately hold SEVERAL cards (owner-clarified 2026-07-09)
+     * — a department can run parallel classes in the same day/time slot as
+     * long as they don't hit the same room or the same student group, so
+     * this returns every reservation per cell rather than the single most-
+     * recently-iterated one (the earlier bug: a second card silently hid
+     * the first because the array key could only ever hold one value).
      *
-     * @return array<string, RoomReservation>
+     * @return array<string, Collection<int, RoomReservation>>
      */
     public function getGridSlots(): array
     {
@@ -247,6 +264,8 @@ class TimetableBuilder extends Page implements HasForms
             ->where('academic_term_id', $this->academicTermId)
             ->where('source', ReservationSource::Timetable)
             ->where('status', ReservationStatus::Confirmed)
+            ->when($this->filterLevel !== null && $this->filterLevel !== '', fn (Builder $q): Builder => $q->where('level', $this->filterLevel))
+            ->when($this->filterStudentGroup !== null && trim($this->filterStudentGroup) !== '', fn (Builder $q): Builder => $q->where('student_group', 'like', '%'.trim((string) $this->filterStudentGroup).'%'))
             ->with(['local.building', 'teacher'])
             ->get()
             ->unique(fn (RoomReservation $r): string => $r->recurring_group_id ?? (string) $r->id);
@@ -261,10 +280,36 @@ class TimetableBuilder extends Page implements HasForms
                 continue;
             }
 
-            $slots["{$dow}-{$timeLabel}"] = $reservation;
+            $slots["{$dow}-{$timeLabel}"] ??= collect();
+            $slots["{$dow}-{$timeLabel}"]->push($reservation);
         }
 
         return $slots;
+    }
+
+    /**
+     * Distinct student groups already used in this department/term, for
+     * the filter dropdown — free-text field, so offered as a data list
+     * rather than a fixed enum (Level already has one, see WEEK_DAYS-style
+     * enum usage above).
+     *
+     * @return list<string>
+     */
+    public function knownStudentGroups(): array
+    {
+        if ($this->departmentId === null || $this->academicTermId === null) {
+            return [];
+        }
+
+        return RoomReservation::query()
+            ->where('department_id', $this->departmentId)
+            ->where('academic_term_id', $this->academicTermId)
+            ->whereNotNull('student_group')
+            ->where('student_group', '!=', '')
+            ->distinct()
+            ->orderBy('student_group')
+            ->pluck('student_group')
+            ->all();
     }
 
     private function matchTimeSlotLabel(string $startTime): ?string

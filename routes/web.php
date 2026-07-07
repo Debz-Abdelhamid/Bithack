@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AnomalyReportController;
 use App\Http\Controllers\EquipmentLabelController;
+use App\Http\Controllers\LocalEquipmentListController;
 use App\Http\Controllers\QrLookupController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,3 +33,9 @@ Route::post('/report/{token}', [AnomalyReportController::class, 'store'])
 Route::get('/equipments/{equipment}/label', EquipmentLabelController::class)
     ->middleware(['auth', 'throttle:panel'])
     ->name('equipments.label');
+
+// Printable A4 room-equipment inventory list (owner request, 2026-07-08) —
+// same shape as the equipment label above.
+Route::get('/locals/{local}/equipment-list', LocalEquipmentListController::class)
+    ->middleware(['auth', 'throttle:panel'])
+    ->name('locals.equipment-list');

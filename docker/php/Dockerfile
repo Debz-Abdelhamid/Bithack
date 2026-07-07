@@ -2,9 +2,16 @@
 # Runs as a non-root user per Security.md §9.
 FROM php:8.4-fpm-alpine
 
-# PHP extensions required by Laravel 12 + Filament + pgsql/redis stack
+# PHP extensions required by Laravel 12 + Filament + pgsql/redis stack.
+# imagick specifically: Filament's own MFA-enrollment QR renderer
+# (Auth\MultiFactor\App\AppAuthentication::generateQrCodeDataUri) prefers
+# imagick and only has a fallback path for when it's missing — that
+# fallback double-base64-wraps an already-complete data URI from
+# pragmarx/google2fa-qrcode 4.x, producing a broken <img> src (blank/broken
+# QR code on the "set up authenticator app" screen). Installing imagick
+# makes Filament take its intended primary path instead of the broken one.
 COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
-RUN install-php-extensions pdo_pgsql pgsql redis zip intl bcmath gd exif opcache pcntl
+RUN install-php-extensions pdo_pgsql pgsql redis zip intl bcmath gd exif opcache pcntl imagick
 
 # Composer available inside the container so nothing is installed on the host
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer

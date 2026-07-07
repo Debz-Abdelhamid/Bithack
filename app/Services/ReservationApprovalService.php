@@ -42,6 +42,22 @@ class ReservationApprovalService
             return;
         }
 
+        if ($reservation->department_id !== null && RoomReservation::hasConfirmedGroupOverlap(
+            $reservation->department_id,
+            $reservation->level,
+            $reservation->student_group,
+            $reservation->start_at,
+            $reservation->end_at,
+            $reservation->getKey(),
+        )) {
+            Notification::make()
+                ->danger()
+                ->title(__('patrimoine.reservations.confirm_blocked_group'))
+                ->send();
+
+            return;
+        }
+
         $conflicts = RoomReservation::conflictingPending(
             $reservation->local_id,
             $reservation->start_at,

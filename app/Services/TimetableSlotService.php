@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ReservationLevel;
 use App\Models\AcademicTerm;
 use App\Models\RoomReservation;
 use Illuminate\Support\Carbon;
@@ -29,6 +30,10 @@ class TimetableSlotService
         $data['academic_term_id'] = $term->id;
 
         if (! $repeatWeekly) {
+            if ($this->hasConflict($data, Carbon::parse($data['start_at']), Carbon::parse($data['end_at']))) {
+                return ['created' => null, 'conflictDate' => Carbon::parse($data['start_at'])->toDateString()];
+            }
+
             return ['created' => RoomReservation::create($data), 'conflictDate' => null];
         }
 
@@ -39,7 +44,7 @@ class TimetableSlotService
         );
 
         foreach ($occurrences as [$occurrenceStart, $occurrenceEnd]) {
-            if (RoomReservation::hasConfirmedOverlap((int) $data['local_id'], $occurrenceStart, $occurrenceEnd)) {
+            if ($this->hasConflict($data, $occurrenceStart, $occurrenceEnd)) {
                 return ['created' => null, 'conflictDate' => $occurrenceStart->toDateString()];
             }
         }
@@ -61,6 +66,36 @@ class TimetableSlotService
         }
 
         return ['created' => $first, 'conflictDate' => null];
+    }
+
+    /**
+     * Two independent conflict axes (owner-clarified 2026-07-09, see
+     * RoomReservation::hasConfirmedGroupOverlap): the room can't be double-
+     * booked, and separately the same named student group can't be double-
+     * booked either — a parallel class for a DIFFERENT room and/or
+     * DIFFERENT group at the same day/time is not a conflict at all.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function hasConflict(array $data, Carbon $start, Carbon $end): bool
+    {
+        if (RoomReservation::hasConfirmedOverlap((int) $data['local_id'], $start, $end)) {
+            return true;
+        }
+
+        if (! isset($data['department_id'])) {
+            return false;
+        }
+
+        $level = $data['level'] ?? null;
+
+        return RoomReservation::hasConfirmedGroupOverlap(
+            (int) $data['department_id'],
+            $level instanceof ReservationLevel ? $level : ReservationLevel::tryFrom((string) $level),
+            $data['student_group'] ?? null,
+            $start,
+            $end,
+        );
     }
 
     /**

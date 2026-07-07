@@ -27,7 +27,13 @@ return [
             'pages' => true,
             'widgets' => true,
             'resources' => true,
-            'custom_permissions' => false,
+            // Enabled (2026-07-08): the app has abilities Shield can't
+            // auto-discover — Intervention (deliberately no standalone
+            // Resource, only a RelationManager nested on the Maintenance
+            // Ticket page — see PROGRESS.md) and 5 custom Policy methods
+            // beyond Shield's standard 12 CRUD ones. Both are listed
+            // explicitly below so they're assignable from this tab.
+            'custom_permissions' => true,
         ],
     ],
 
@@ -236,7 +242,41 @@ return [
     |
     */
 
-    'custom_permissions' => [],
+    'custom_permissions' => [
+        // Full CRUD set for Intervention (Schema.md §2.9) — no standalone
+        // InterventionResource exists on purpose (an intervention is only
+        // ever managed in the context of its parent ticket, via
+        // InterventionsRelationManager on MaintenanceTicketResource), so
+        // Shield can't auto-discover these the way it does real Resources.
+        // LogWork kept adjacent to the rest of Intervention's set, not
+        // trailing at the end, since this tab has no real section headers
+        // (confirmed against Shield's own source — CheckboxList options
+        // are always one flat list, "Resources" included) — array order
+        // next to a matching label is the only grouping cue available.
+        'ViewAny:Intervention',
+        'View:Intervention',
+        'Create:Intervention',
+        'Update:Intervention',
+        'Delete:Intervention',
+        'DeleteAny:Intervention',
+        'Restore:Intervention',
+        'RestoreAny:Intervention',
+        'ForceDelete:Intervention',
+        'ForceDeleteAny:Intervention',
+        'Replicate:Intervention',
+        'Reorder:Intervention',
+        'LogWork:Intervention',
+        // Custom Policy abilities beyond Shield's standard 12 CRUD methods.
+        // View:CampusMap / View:ReservationAvailability deliberately NOT
+        // listed here — they're real Filament Pages, already correctly
+        // auto-discovered under the "Pages" tab (confirmed live via
+        // FilamentShield::getPages()); listing them again here would just
+        // duplicate the same permission under two tabs.
+        'PrintLabel:Equipment',
+        'ManageTimetable:RoomReservation',
+        'Approve:RoomReservation',
+        'Cancel:RoomReservation',
+    ],
 
     /*
     |--------------------------------------------------------------------------

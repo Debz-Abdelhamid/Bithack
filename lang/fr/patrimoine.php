@@ -236,9 +236,10 @@ return [
     ],
 
     'reservations' => [
-        'overlap_error' => 'Ce local est déjà réservé sur un créneau chevauchant.',
+        'overlap_error' => 'Ce local, ou ce groupe d\'étudiants, est déjà réservé sur un créneau chevauchant.',
         'confirm_blocked' => 'Confirmation impossible — ce local est déjà réservé sur un créneau chevauchant.',
-        'series_conflict' => 'Ce local est déjà réservé le :date — aucun créneau de la série n\'a été créé.',
+        'confirm_blocked_group' => 'Confirmation impossible — ce groupe d\'étudiants a déjà un autre cours confirmé sur un créneau chevauchant.',
+        'series_conflict' => 'Ce local, ou ce groupe d\'étudiants, est déjà réservé le :date — aucun créneau de la série n\'a été créé.',
         'notif_confirmed_title' => 'Réservation confirmée',
         'notif_confirmed_body' => 'Votre réservation pour :local a été confirmée.',
         'notif_auto_rejected_title' => 'Réservation refusée (local pris)',
@@ -278,6 +279,10 @@ return [
         'academic_structure_hint' => 'Sélectionnez un département pour remplir son emploi du temps.',
         'no_departments' => 'Aucun département pour le moment.',
         'legend_confirmed' => 'Confirmé — les créneaux de l\'emploi du temps sont verrouillés dès leur création.',
+        'filter_level' => 'Niveau',
+        'filter_all_levels' => 'Tous les niveaux',
+        'filter_group' => 'Groupe d\'étudiants',
+        'filter_group_placeholder' => 'ex. Groupe A',
     ],
 
     'week_days' => [
@@ -436,6 +441,14 @@ return [
 
     'registration' => [
         'email_domain' => 'L\'inscription est réservée aux adresses e-mail institutionnelles (:domains).',
+    ],
+
+    'locals' => [
+        'print_equipment_list' => 'Imprimer la liste des équipements',
+        'equipment_list_title' => 'Liste des équipements',
+        'equipment_count' => ':count équipement|:count équipements',
+        'no_equipment' => 'Aucun équipement placé dans ce local.',
+        'printed_on' => 'Imprimé le :date',
     ],
 
 ];

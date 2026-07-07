@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ReservationLevel;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Exceptions\OverlappingReservationException;
@@ -108,6 +109,39 @@ it('throws when saving a confirmed reservation that overlaps another confirmed o
         'end_at' => $this->nextMonday->copy()->addMinutes(90),
     ]);
 })->throws(OverlappingReservationException::class);
+
+it('detects a confirmed student-group overlap regardless of room, but ignores blank groups', function (): void {
+    RoomReservation::factory()->confirmed()->create([
+        'local_id' => $this->techLocal->id,
+        'department_id' => $this->techDepartment->id,
+        'level' => 'l1',
+        'student_group' => 'Group A',
+        'start_at' => $this->nextMonday,
+        'end_at' => $this->nextMonday->copy()->addHour(),
+    ]);
+
+    expect(RoomReservation::hasConfirmedGroupOverlap(
+        $this->techDepartment->id,
+        ReservationLevel::L1,
+        'Group A',
+        $this->nextMonday->copy()->addMinutes(30),
+        $this->nextMonday->copy()->addMinutes(90),
+    ))->toBeTrue()
+        ->and(RoomReservation::hasConfirmedGroupOverlap(
+            $this->techDepartment->id,
+            ReservationLevel::L1,
+            'Group B',
+            $this->nextMonday->copy()->addMinutes(30),
+            $this->nextMonday->copy()->addMinutes(90),
+        ))->toBeFalse()
+        ->and(RoomReservation::hasConfirmedGroupOverlap(
+            $this->techDepartment->id,
+            ReservationLevel::L1,
+            null,
+            $this->nextMonday->copy()->addMinutes(30),
+            $this->nextMonday->copy()->addMinutes(90),
+        ))->toBeFalse();
+});
 
 it('allows two pending requests to overlap the same room/time', function (): void {
     RoomReservation::factory()->create([
@@ -347,6 +381,33 @@ it('blocks confirmation if the room was already booked in the meantime', functio
 
     RoomReservation::factory()->confirmed()->create([
         'local_id' => $this->techLocal->id,
+        'start_at' => $this->nextMonday,
+        'end_at' => $this->nextMonday->copy()->addHour(),
+    ]);
+
+    $this->actingAs(actingUserWithRole(RoleName::GESTIONNAIRE_PATRIMOINE));
+
+    Livewire::test(ListRoomReservations::class)
+        ->callAction(TestAction::make('confirm')->table($request));
+
+    expect($request->refresh()->status)->toBe(ReservationStatus::Pending);
+});
+
+it('blocks confirmation if the student group already has a confirmed class at that time, even in a different room', function (): void {
+    $request = RoomReservation::factory()->create([
+        'local_id' => $this->techLocal->id,
+        'department_id' => $this->techDepartment->id,
+        'level' => 'l1',
+        'student_group' => 'Group A',
+        'start_at' => $this->nextMonday,
+        'end_at' => $this->nextMonday->copy()->addHour(),
+    ]);
+
+    RoomReservation::factory()->confirmed()->create([
+        'local_id' => $this->sharedLocal->id,
+        'department_id' => $this->techDepartment->id,
+        'level' => 'l1',
+        'student_group' => 'Group A',
         'start_at' => $this->nextMonday,
         'end_at' => $this->nextMonday->copy()->addHour(),
     ]);
@@ -766,4 +827,120 @@ it('cancels the whole recurring series, not just one occurrence', function (): v
 
     expect($first->refresh()->status)->toBe(ReservationStatus::Cancelled)
         ->and($second->refresh()->status)->toBe(ReservationStatus::Cancelled);
+});
+
+// --- Parallel classes in the same day/time cell (owner-reported bug, 2026-07-09) ---
+
+it('shows two parallel classes in the same grid cell instead of the second silently hiding the first', function (): void {
+    $teacher = reservationTeacher();
+    $monday8am = $this->nextMonday->copy()->setTime(8, 0);
+
+    RoomReservation::factory()->confirmed()->create([
+        'local_id' => $this->techLocal->id,
+        'source' => ReservationSource::Timetable,
+        'department_id' => $this->techDepartment->id,
+        'academic_term_id' => $this->term->id,
+        'teacher_user_id' => $teacher->id,
+        'level' => 'l1',
+        'student_group' => 'Group A',
+        'module_name' => 'Algorithms — Group A',
+        'start_at' => $monday8am,
+        'end_at' => $monday8am->copy()->addMinutes(90),
+    ]);
+
+    RoomReservation::factory()->confirmed()->create([
+        'local_id' => $this->sharedLocal->id,
+        'source' => ReservationSource::Timetable,
+        'department_id' => $this->techDepartment->id,
+        'academic_term_id' => $this->term->id,
+        'teacher_user_id' => $teacher->id,
+        'level' => 'l1',
+        'student_group' => 'Group B',
+        'module_name' => 'Algorithms — Group B',
+        'start_at' => $monday8am,
+        'end_at' => $monday8am->copy()->addMinutes(90),
+    ]);
+
+    $this->actingAs(actingUserWithRole(RoleName::GESTIONNAIRE_PATRIMOINE));
+
+    Livewire::test(TimetableBuilder::class)
+        ->set('departmentId', $this->techDepartment->id)
+        ->set('academicTermId', $this->term->id)
+        ->assertSee('Algorithms — Group A')
+        ->assertSee('Algorithms — Group B');
+});
+
+it('refuses a new timetable series for a student group already scheduled at that time, even in a free room', function (): void {
+    $teacher = reservationTeacher();
+    $monday8am = $this->nextMonday->copy()->setTime(8, 0);
+
+    RoomReservation::factory()->confirmed()->create([
+        'local_id' => $this->techLocal->id,
+        'source' => ReservationSource::Timetable,
+        'department_id' => $this->techDepartment->id,
+        'academic_term_id' => $this->term->id,
+        'teacher_user_id' => $teacher->id,
+        'level' => 'l1',
+        'student_group' => 'Group A',
+        'start_at' => $monday8am,
+        'end_at' => $monday8am->copy()->addMinutes(90),
+    ]);
+
+    $this->actingAs(actingUserWithRole(RoleName::GESTIONNAIRE_PATRIMOINE));
+
+    Livewire::test(TimetableBuilder::class)
+        ->set('departmentId', $this->techDepartment->id)
+        ->set('academicTermId', $this->term->id)
+        ->fillForm([
+            'local_id' => $this->sharedLocal->id,
+            'teacher_user_id' => $teacher->id,
+            'module_name' => 'Conflicting Course',
+            'level' => 'l1',
+            'student_group' => 'Group A',
+            'day' => (string) Carbon::MONDAY,
+            'time_slot' => '08:00 - 09:30',
+        ])
+        ->call('submit');
+
+    expect(RoomReservation::query()->where('module_name', 'Conflicting Course')->exists())->toBeFalse();
+});
+
+it('filters the grid down to one student group at a time', function (): void {
+    $teacher = reservationTeacher();
+    $monday8am = $this->nextMonday->copy()->setTime(8, 0);
+
+    RoomReservation::factory()->confirmed()->create([
+        'local_id' => $this->techLocal->id,
+        'source' => ReservationSource::Timetable,
+        'department_id' => $this->techDepartment->id,
+        'academic_term_id' => $this->term->id,
+        'teacher_user_id' => $teacher->id,
+        'level' => 'l1',
+        'student_group' => 'Group A',
+        'module_name' => 'Algorithms — Group A',
+        'start_at' => $monday8am,
+        'end_at' => $monday8am->copy()->addMinutes(90),
+    ]);
+
+    RoomReservation::factory()->confirmed()->create([
+        'local_id' => $this->sharedLocal->id,
+        'source' => ReservationSource::Timetable,
+        'department_id' => $this->techDepartment->id,
+        'academic_term_id' => $this->term->id,
+        'teacher_user_id' => $teacher->id,
+        'level' => 'l1',
+        'student_group' => 'Group B',
+        'module_name' => 'Algorithms — Group B',
+        'start_at' => $monday8am,
+        'end_at' => $monday8am->copy()->addMinutes(90),
+    ]);
+
+    $this->actingAs(actingUserWithRole(RoleName::GESTIONNAIRE_PATRIMOINE));
+
+    Livewire::test(TimetableBuilder::class)
+        ->set('departmentId', $this->techDepartment->id)
+        ->set('academicTermId', $this->term->id)
+        ->set('filterStudentGroup', 'Group A')
+        ->assertSee('Algorithms — Group A')
+        ->assertDontSee('Algorithms — Group B');
 });

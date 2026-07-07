@@ -74,6 +74,14 @@ class Local extends Model
         return $this->hasMany(Assignment::class);
     }
 
+    /**
+     * @return HasMany<Equipment, $this>
+     */
+    public function equipments(): HasMany
+    {
+        return $this->hasMany(Equipment::class);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

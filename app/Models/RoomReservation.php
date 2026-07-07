@@ -153,6 +153,42 @@ class RoomReservation extends Model
     }
 
     /**
+     * A second, independent conflict axis alongside the room (Schema.md/
+     * PROGRESS.md, owner-clarified 2026-07-09): the SAME named student
+     * group cannot be in two different confirmed classes at the same time,
+     * even in two different rooms — a class is not just "room busy", it's
+     * also "these specific students busy". Deliberately scoped to
+     * (department_id, level, student_group) — "Groupe A" in one department
+     * is not the same humans as "Groupe A" in another. Blank/null
+     * student_group never conflicts with anything: an unnamed group can't
+     * be safely matched against another unnamed group (TODO(confirm) if
+     * the university wants ungrouped/whole-cohort bookings to conflict
+     * with each other too).
+     */
+    public static function hasConfirmedGroupOverlap(
+        int $departmentId,
+        ?ReservationLevel $level,
+        ?string $studentGroup,
+        Carbon $start,
+        Carbon $end,
+        ?int $excludeId = null,
+    ): bool {
+        if ($studentGroup === null || trim($studentGroup) === '') {
+            return false;
+        }
+
+        return static::query()
+            ->withoutGlobalScopes()
+            ->where('department_id', $departmentId)
+            ->where('level', $level)
+            ->where('student_group', $studentGroup)
+            ->where('status', ReservationStatus::Confirmed)
+            ->when($excludeId !== null, fn (Builder $q): Builder => $q->whereKeyNot($excludeId))
+            ->overlapping($start, $end)
+            ->exists();
+    }
+
+    /**
      * Other PENDING requests competing for the same room/time — auto-
      * rejected when one of them gets confirmed (PROGRESS.md open question
      * #5 default).

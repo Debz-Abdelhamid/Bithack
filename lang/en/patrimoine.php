@@ -236,9 +236,10 @@ return [
     ],
 
     'reservations' => [
-        'overlap_error' => 'This room is already booked for an overlapping time.',
+        'overlap_error' => 'This room, or this student group, is already booked for an overlapping time.',
         'confirm_blocked' => 'Cannot confirm — this room is already booked for an overlapping time.',
-        'series_conflict' => 'This room is already booked on :date — no slots in the series were created.',
+        'confirm_blocked_group' => 'Cannot confirm — this student group already has another confirmed class at an overlapping time.',
+        'series_conflict' => 'This room, or this student group, is already booked on :date — no slots in the series were created.',
         'notif_confirmed_title' => 'Reservation confirmed',
         'notif_confirmed_body' => 'Your booking for :local has been confirmed.',
         'notif_auto_rejected_title' => 'Reservation rejected (room taken)',
@@ -278,6 +279,10 @@ return [
         'academic_structure_hint' => 'Select a department to fill its timetable.',
         'no_departments' => 'No departments yet.',
         'legend_confirmed' => 'Confirmed — timetable slots are locked in immediately.',
+        'filter_level' => 'Level',
+        'filter_all_levels' => 'All levels',
+        'filter_group' => 'Student group',
+        'filter_group_placeholder' => 'e.g. Group A',
     ],
 
     'week_days' => [
@@ -436,6 +441,14 @@ return [
 
     'registration' => [
         'email_domain' => 'Registration is limited to institutional email addresses (:domains).',
+    ],
+
+    'locals' => [
+        'print_equipment_list' => 'Print equipment list',
+        'equipment_list_title' => 'Equipment list',
+        'equipment_count' => ':count equipment item|:count equipment items',
+        'no_equipment' => 'No equipment placed in this room.',
+        'printed_on' => 'Printed :date',
     ],
 
 ];

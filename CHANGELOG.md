@@ -3,6 +3,101 @@
 All notable changes to the PUI-UBMA R13 Patrimoine module.
 Format: one entry per phase (see `Phases.md`), Conventional-Commit-style categories.
 
+## Post-Phase-7 hardening — seeding, RBAC audit, room equipment print (2026-07-08/09)
+
+Not a new phase — cleanup/fixes discovered while the owner ran manual verification of
+Phases 1–7, plus one new feature requested during that pass.
+
+### Fixed — timetable double-booking model was wrong (owner-reported, 2026-07-09)
+- **A grid cell could only ever show one class.** The owner reported that filling the same
+  period twice (e.g. two 08:00–09:30 Monday classes for two different groups) made the
+  second card silently overwrite the first. Root cause: `TimetableBuilder::getGridSlots()`
+  keyed reservations into a `"{day}-{period}"` array whose value was a single reservation —
+  a second class for the same cell just clobbered the array entry. A department genuinely
+  runs several parallel classes in the same slot (different rooms, different student groups),
+  so the cell value is now a *collection* and the blade renders every card stacked.
+- **The conflict rule now has two independent axes, not one.** Previously "can this slot be
+  booked" only asked "is the room free" (`hasConfirmedOverlap`). That wrongly rejected a
+  legitimate parallel class in a *different* room. Added `RoomReservation::
+  hasConfirmedGroupOverlap()` as a second, separate check: the same **(department, level,
+  student group)** can't be in two confirmed classes at once *even across two different
+  rooms* — a class is "these students are busy", not only "this room is busy". A booking is
+  rejected if it hits **either** axis; a different room AND a different group at the same
+  day/time is allowed. Blank/unnamed student groups never conflict on the group axis (an
+  unnamed group can't be safely matched — `TODO(confirm)` whether whole-cohort bookings
+  should conflict with each other). Enforced in all three writers that share the rule:
+  `TimetableSlotService` (series pre-validation), `RoomReservationObserver` (driver-agnostic
+  guard under every save), and `ReservationApprovalService::confirm()` (friendly block on the
+  ad-hoc approval path, new `confirm_blocked_group` message).
+- **Added Level + Student-group filters to the grid** so a department with many parallel
+  classes can narrow the view to one level/group at a time instead of reading stacked cards.
+  The group filter is a free-text `<datalist>` seeded from the groups already used in that
+  department/term.
+- 5 new Pest tests (172 total): group-overlap detection (incl. the blank-group no-op),
+  two parallel classes both rendering in one cell, a same-group-different-room series being
+  refused, the approval-path group block, and the group filter narrowing the grid.
+
+### Added
+- `UserSeeder`: replaces `DemoSeeder` in the default `DatabaseSeeder` chain. 3 faculties
+  (FT/FS/FM) + 13 users, all `@univ-annaba.dz`, password `password`. Elevated roles are
+  seeded **without** a pre-set `app_authentication_secret` so MFA enrollment happens for
+  real on first login, matching how the university's own users will onboard.
+  `PermissionSeeder` is no longer in the default chain either — the owner assigns
+  permissions to roles manually from the Shield UI using the Super Admin account
+  (gate-based, so it works even with zero permission rows in the DB).
+- `ReferenceDataSeeder` (opt-in, run manually): buildings/rooms (folds in the owner's own
+  manually-created "BAT-INF" building plus 3 new ones), 12 equipment items, 4 services,
+  1 assignment, 3 departments, 1 confirmed academic term + timetable reservation, 4
+  maintenance tickets across different statuses/priorities with 3 interventions. Lets the
+  owner verify Phases 3–7 against realistic data instead of creating everything by hand.
+- **Room equipment print list** (owner request): `GET /locals/{local}/equipment-list`
+  (`LocalEquipmentListController`) — an A4 printable page (auto `window.print()` on load)
+  listing every `Equipment` row in a room with a pluralized count, reachable from a new
+  "Print equipment list" row action on the Locals table (policy-checked, opens in a new
+  tab). Respects `FacultyScope` at the route-model-binding level — an N2 opening another
+  faculty's room gets a 404 before the controller runs, same as every other scoped
+  resource. Added the missing `Local::equipments(): HasMany` relation this needed (and
+  that the print feature's own verification also needed). 5 new Pest tests (167 total).
+
+### Fixed (real bugs found during the owner's manual test pass, not guessed)
+- **MFA enrollment QR code rendered as a broken image.** Root cause: the PHP image was
+  missing the `imagick` extension. `pragmarx/google2fa-qrcode` already returns a complete
+  `data:image/...;base64,...` URI, but Filament's `AppAuthentication::generateQrCodeDataUri()`
+  has a fallback path that assumes imagick's absence means the renderer returned raw SVG
+  needing a manual data-URI wrap — it doesn't, so the fallback double-base64-encoded an
+  already-complete URI. Fixed by adding `imagick` to `docker/php/Dockerfile` and rebuilding
+  all 4 PHP service images (`app`/`queue`/`reverb`/`scheduler` each build their own tagged
+  image from the same Dockerfile — none share an `image:` key, so all 4 needed rebuilding).
+- **`Faculty` and `Service` were never governed by `PermissionSeeder`** — a real RBAC gap
+  found via systematic audit (comparing `FilamentShield::getResources()` against the
+  seeder's coverage), not a cosmetic one: A3 had zero ability to manage either model, which
+  would have blocked the owner's own Phase 4 manual testing (creating a Service). Added
+  both to the `$fullPatrimoine` loop and their `ViewAny`/`View` to the read-only set; also
+  switched every role's grant from `givePermissionTo()` to `syncPermissions()` so re-running
+  the seeder is idempotent and can't accumulate stale permissions across edits.
+- **Shield's role-edit UI wasn't showing `Intervention` or the app's 5 non-CRUD policy
+  abilities** (`PrintLabel`, `ManageTimetable`, `Approve`, `Cancel`, `LogWork`) — `Interven
+  tion` has no standalone Filament Resource by design (RelationManager-only, nested on
+  `MaintenanceTicketResource`), so Shield never auto-discovered its permissions. Enabled
+  `config('filament-shield.shield_resource.tabs.custom_permissions')` (disabled by default)
+  and populated it with the 12 `Intervention` CRUD strings + the 5 custom abilities.
+  Deliberately did *not* add `View:CampusMap`/`View:ReservationAvailability` here even
+  though they're also "custom" in spirit — confirmed live via `FilamentShield::getPages()`
+  that Shield already auto-discovers those correctly under the "Pages" tab, so adding them
+  to `custom_permissions` too would have created visible duplicates.
+
+### Notes
+- Confirmed (owner asked directly): Shield's role-edit tabs — Resources / Pages / Widgets /
+  Custom Permissions — are all cosmetic groupings over one flat permission list; there is no
+  real section-grouping capability in Shield's stock UI (verified by reading
+  `HasShieldFormComponents.php`/`HasResourceHelpers.php`, both flatten every tab into a
+  single `CheckboxList`).
+- Confirmed (owner asked directly): Super Admin showing **0** permission rows is correct,
+  not a bug — `define_via_gate: true` + `intercept_gate: 'before'` in
+  `config/filament-shield.php` means the gate short-circuits before any permission lookup
+  runs, for anyone holding the `super_admin` role. Verified live via
+  `$admin->can('AnythingAtAll:Whatever')` returning `true` with zero rows in `permissions`.
+
 ## Phase 7 — Maintenance ticket workflow & SLA engine (2026-07-08)
 
 ### Added

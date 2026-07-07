@@ -5,6 +5,7 @@ use App\Filament\Resources\Buildings\BuildingResource;
 use App\Filament\Resources\Buildings\Pages\CreateBuilding;
 use App\Filament\Resources\Locals\Pages\CreateLocal;
 use App\Models\Building;
+use App\Models\Equipment;
 use App\Models\Faculty;
 use App\Models\Local;
 use App\Models\User;
@@ -191,4 +192,52 @@ it('lets A3 reposition a building from the map — policy-checked', function ():
 
     expect(round($this->techBuilding->latitude, 5))->toBe(36.9)
         ->and(round($this->techBuilding->longitude, 5))->toBe(7.8);
+});
+
+// --- Room equipment printable list (owner request, 2026-07-08) ---
+
+it('lets A3 print a room\'s equipment list showing every item placed in it', function (): void {
+    $room = Local::factory()->create(['building_id' => $this->techBuilding->id, 'name' => 'Equipped Room']);
+    Equipment::factory()->create(['local_id' => $room->id, 'designation' => 'Vidéoprojecteur']);
+    Equipment::factory()->create(['local_id' => $room->id, 'designation' => 'Ordinateur de bureau']);
+
+    $this->actingAs(actingUserWithRole(RoleName::GESTIONNAIRE_PATRIMOINE));
+
+    $this->get(route('locals.equipment-list', $room))
+        ->assertOk()
+        ->assertSee('Vidéoprojecteur')
+        ->assertSee('Ordinateur de bureau')
+        ->assertSee('2 equipment');
+});
+
+it('shows the empty state for a room with no equipment', function (): void {
+    $room = Local::factory()->create(['building_id' => $this->techBuilding->id]);
+
+    $this->actingAs(actingUserWithRole(RoleName::GESTIONNAIRE_PATRIMOINE));
+
+    $this->get(route('locals.equipment-list', $room))
+        ->assertOk()
+        ->assertSee(__('patrimoine.locals.no_equipment'));
+});
+
+it('lets N2 print the list for a room in their own faculty', function (): void {
+    $room = Local::factory()->create(['building_id' => $this->techBuilding->id]);
+
+    $this->actingAs(n2ForFaculty($this->technology));
+
+    $this->get(route('locals.equipment-list', $room))->assertOk();
+});
+
+it('404s an N2 trying to print another faculty\'s room list (FacultyScope on route binding)', function (): void {
+    $foreignRoom = Local::factory()->create(['building_id' => $this->sciBuilding->id]);
+
+    $this->actingAs(n2ForFaculty($this->technology));
+
+    $this->get(route('locals.equipment-list', $foreignRoom))->assertNotFound();
+});
+
+it('redirects a guest away from the room equipment list', function (): void {
+    $room = Local::factory()->create(['building_id' => $this->techBuilding->id]);
+
+    $this->get(route('locals.equipment-list', $room))->assertRedirect();
 });

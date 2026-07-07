@@ -12,7 +12,10 @@ use Spatie\Permission\PermissionRegistrar;
  * Baseline grants straight from the Security.md §3 matrix — everything else
  * stays at zero and is adjusted from the Shield UI. Idempotent: permissions
  * are findOrCreate'd (same names shield:generate produces) so fresh installs
- * and tests do not depend on running the generator first.
+ * and tests do not depend on running the generator first. Uses
+ * syncPermissions (not givePermissionTo) deliberately — re-running this
+ * seeder always converges each role to exactly this list, cleaning up any
+ * stray manual grants from the Shield UI rather than only ever adding.
  */
 class PermissionSeeder extends Seeder
 {
@@ -28,7 +31,15 @@ class PermissionSeeder extends Seeder
 
         $fullPatrimoine = [];
 
-        foreach (['Building', 'Local', 'Equipment', 'PurchaseReference', 'Assignment', 'RoomReservation', 'Department', 'AcademicTerm', 'MaintenanceTicket', 'Intervention'] as $model) {
+        // Faculty/Service added 2026-07-08 — a real gap found during manual
+        // testing from a zero-permission slate: A3 had no way to create a
+        // Service through the UI at all (needed for Phase 4), and Faculty
+        // (referenced everywhere — N2 scoping, buildings, departments) was
+        // ungoverned too. `User`/`Role` deliberately stay OUT of this list
+        // — user/role administration is a Super-Admin-only system concern,
+        // not Patrimoine business data, so no business role gets any of
+        // their 12+12 permissions.
+        foreach (['Building', 'Local', 'Equipment', 'PurchaseReference', 'Assignment', 'RoomReservation', 'Department', 'AcademicTerm', 'MaintenanceTicket', 'Intervention', 'Faculty', 'Service'] as $model) {
             foreach (self::RESOURCE_METHODS as $method) {
                 $fullPatrimoine[] = Permission::findOrCreate("{$method}:{$model}", 'web')->name;
             }
@@ -81,6 +92,8 @@ class PermissionSeeder extends Seeder
             // invented rule (flagged in PROGRESS.md).
             'ViewAny:MaintenanceTicket', 'View:MaintenanceTicket',
             'ViewAny:Intervention', 'View:Intervention',
+            'ViewAny:Faculty', 'View:Faculty',
+            'ViewAny:Service', 'View:Service',
         ];
 
         // N2 administers affectations inside their faculty (matrix:
@@ -105,21 +118,21 @@ class PermissionSeeder extends Seeder
 
         // A3 — full CRUD on the inventory referential (matrix: "full CRUD inventory").
         Role::findByName(RoleName::GESTIONNAIRE_PATRIMOINE, 'web')
-            ->givePermissionTo([
+            ->syncPermissions([
                 ...$fullPatrimoine, $campusMap, $printLabel, $reservationAvailability,
                 $manageTimetable, $approveReservation, $cancelReservation,
             ]);
 
         // N2 — sees their faculty's patrimoine (FacultyScope narrows the queries).
         Role::findByName(RoleName::RESPONSABLE_FACULTE, 'web')
-            ->givePermissionTo([
+            ->syncPermissions([
                 ...$readOnlyPatrimoine, ...$n2Assignments, ...$n2Reservations, ...$n2Departments,
                 $campusMap, $reservationAvailability,
             ]);
 
         // N3 — university-wide read visibility.
         Role::findByName(RoleName::RECTORAT, 'web')
-            ->givePermissionTo([...$readOnlyPatrimoine, $campusMap, $reservationAvailability]);
+            ->syncPermissions([...$readOnlyPatrimoine, $campusMap, $reservationAvailability]);
 
         // Service technique — campus map, ticket visibility, and (Phase 7)
         // real workflow actions (matrix: "plans and carries out
@@ -130,7 +143,7 @@ class PermissionSeeder extends Seeder
         // an intervention they're assigned to (LogWork, scoped by
         // technician_id in the policy, not a DB scope — no dedicated
         // technician sub-team model exists, Schema.md §2.9).
-        Role::findByName(RoleName::SERVICE_TECHNIQUE, 'web')->givePermissionTo([
+        Role::findByName(RoleName::SERVICE_TECHNIQUE, 'web')->syncPermissions([
             $campusMap, 'ViewAny:MaintenanceTicket', 'View:MaintenanceTicket', 'Update:MaintenanceTicket',
             'ViewAny:Intervention', 'View:Intervention', $logWork,
         ]);
@@ -141,7 +154,7 @@ class PermissionSeeder extends Seeder
         // the read-only availability grid before requesting. Also reports
         // anomalies (matrix: "report anomalies") — Create only, no
         // browsing of the ticket resource itself.
-        Role::findByName(RoleName::ENSEIGNANT, 'web')->givePermissionTo([
+        Role::findByName(RoleName::ENSEIGNANT, 'web')->syncPermissions([
             $campusMap, $reservationAvailability, 'Create:RoomReservation', $cancelReservation,
             'Create:MaintenanceTicket',
         ]);
@@ -150,6 +163,6 @@ class PermissionSeeder extends Seeder
         // matrix; booking initiation removed 2026-07-04. Reports anomalies
         // via QR scan (matrix), same Create-only shape as Enseignant.
         Role::findByName(RoleName::TOUT_UTILISATEUR, 'web')
-            ->givePermissionTo([$campusMap, $reservationAvailability, 'Create:MaintenanceTicket']);
+            ->syncPermissions([$campusMap, $reservationAvailability, 'Create:MaintenanceTicket']);
     }
 }

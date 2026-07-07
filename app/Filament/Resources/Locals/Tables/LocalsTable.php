@@ -4,9 +4,12 @@ namespace App\Filament\Resources\Locals\Tables;
 
 use App\Enums\LocalStatus;
 use App\Enums\LocalType;
+use App\Models\Local;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -60,6 +63,12 @@ class LocalsTable
                     ->options(LocalStatus::class),
             ])
             ->recordActions([
+                Action::make('print_equipment_list')
+                    ->label(__('patrimoine.locals.print_equipment_list'))
+                    ->icon(Heroicon::OutlinedPrinter)
+                    ->url(fn (Local $record): string => route('locals.equipment-list', $record))
+                    ->openUrlInNewTab()
+                    ->visible(fn (Local $record): bool => auth()->user()?->can('view', $record) ?? false),
                 EditAction::make(),
             ])
             ->toolbarActions([

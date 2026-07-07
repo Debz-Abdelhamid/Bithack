@@ -1,8 +1,10 @@
 @php
     use App\Filament\Pages\TimetableBuilder;
+    use App\Enums\ReservationLevel;
 
     $slots = $this->getGridSlots();
     $currentDepartment = $this->currentDepartment();
+    $knownStudentGroups = $this->knownStudentGroups();
 
     $statusClasses = [
         'success' => ['accent' => 'bg-green-600', 'bg' => 'bg-green-50 dark:bg-green-900/20', 'badge' => 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'],
@@ -69,6 +71,39 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="min-w-[10rem]">
+                    <label for="timetable-level-filter" class="mb-1 block text-xs font-medium text-gray-500">
+                        {{ __('patrimoine.timetable.filter_level') }}
+                    </label>
+                    <select
+                        id="timetable-level-filter"
+                        class="w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+                        wire:model.live="filterLevel"
+                    >
+                        <option value="">{{ __('patrimoine.timetable.filter_all_levels') }}</option>
+                        @foreach (ReservationLevel::cases() as $level)
+                            <option value="{{ $level->value }}">{{ $level->getLabel() }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="min-w-[12rem]">
+                    <label for="timetable-group-filter" class="mb-1 block text-xs font-medium text-gray-500">
+                        {{ __('patrimoine.timetable.filter_group') }}
+                    </label>
+                    <input
+                        id="timetable-group-filter"
+                        type="text"
+                        list="timetable-known-groups"
+                        placeholder="{{ __('patrimoine.timetable.filter_group_placeholder') }}"
+                        class="w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+                        wire:model.live.debounce.400ms="filterStudentGroup"
+                    />
+                    <datalist id="timetable-known-groups">
+                        @foreach ($knownStudentGroups as $group)
+                            <option value="{{ $group }}"></option>
+                        @endforeach
+                    </datalist>
+                </div>
                 <div class="text-right text-xs text-gray-500">
                     @if ($currentDepartment)
                         <span class="font-semibold text-gray-800 dark:text-gray-100">{{ $currentDepartment->faculty->name }}</span>
@@ -101,11 +136,11 @@
                             </div>
                             @foreach (TimetableBuilder::WEEK_DAYS as $day)
                                 @php
-                                    $reservation = $slots["{$day['dow']}-{$slot['label']}"] ?? null;
-                                    $style = $reservation ? $statusClasses[$reservation->status->getColor()] : null;
+                                    $cellReservations = $slots["{$day['dow']}-{$slot['label']}"] ?? collect();
                                 @endphp
-                                <div class="min-h-[92px] border-l border-gray-200 bg-white p-1.5 dark:border-gray-700 dark:bg-gray-900">
-                                    @if ($reservation)
+                                <div class="min-h-[92px] space-y-1.5 border-l border-gray-200 bg-white p-1.5 dark:border-gray-700 dark:bg-gray-900">
+                                    @forelse ($cellReservations as $reservation)
+                                        @php $style = $statusClasses[$reservation->status->getColor()]; @endphp
                                         <div class="group relative overflow-hidden rounded-lg border border-gray-200 {{ $style['bg'] }} shadow-sm transition-shadow hover:shadow-md dark:border-gray-700">
                                             <div class="absolute inset-y-0 left-0 w-[3px] {{ $style['accent'] }}"></div>
                                             <div class="py-1.5 pl-2.5 pr-1.5 text-xs">
@@ -142,9 +177,9 @@
                                                 </button>
                                             </div>
                                         </div>
-                                    @else
+                                    @empty
                                         <span class="text-[10px] text-gray-300">{{ __('patrimoine.timetable.empty_slot') }}</span>
-                                    @endif
+                                    @endforelse
                                 </div>
                             @endforeach
                         </div>
