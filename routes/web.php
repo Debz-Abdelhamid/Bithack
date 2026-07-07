@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnomalyReportController;
 use App\Http\Controllers\EquipmentLabelController;
 use App\Http\Controllers\QrLookupController;
 use Illuminate\Support\Facades\Route;
@@ -16,6 +17,15 @@ Route::get('/report/{token}', QrLookupController::class)
     ->whereUuid('token')
     ->middleware('throttle:qr-lookup')
     ->name('qr.lookup');
+
+// Anomaly-report submission (Phases.md Phase 6) — same URL family, but
+// requires a session (redirectGuestsTo sends a guest to Filament login,
+// bootstrap/app.php) and its own tighter limiter (Security.md §5 flags
+// this as the single most abuse-prone endpoint in the module).
+Route::post('/report/{token}', [AnomalyReportController::class, 'store'])
+    ->whereUuid('token')
+    ->middleware(['auth', 'throttle:anomaly-report'])
+    ->name('report.store');
 
 // Printable A4 label — authenticated (panel session), policy-checked in
 // the controller, throttled like the rest of the panel.

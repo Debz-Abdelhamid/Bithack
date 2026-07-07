@@ -7,6 +7,7 @@ use App\Models\Building;
 use App\Models\Department;
 use App\Models\Equipment;
 use App\Models\Local;
+use App\Models\MaintenanceTicket;
 use App\Models\RoomReservation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -101,6 +102,20 @@ class FacultyScope implements Scope
         // and teachers request campus-wide (Phases.md Phase 5).
         if ($model instanceof RoomReservation) {
             $builder->whereHas('local');
+
+            return;
+        }
+
+        // A ticket is visible iff its subject is: the nested whereHas
+        // calls re-apply the Equipment/Local branches above automatically
+        // (same cascade as Assignment's branch).
+        if ($model instanceof MaintenanceTicket) {
+            $builder->where(function (Builder $query): void {
+                $query->whereHas('equipment')
+                    ->orWhere(function (Builder $inner): void {
+                        $inner->whereNull('equipment_id')->whereHas('local');
+                    });
+            });
         }
     }
 }

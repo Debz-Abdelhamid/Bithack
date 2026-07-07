@@ -7,6 +7,7 @@ use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Models\AcademicTerm;
 use App\Models\Department;
+use App\Models\Faculty;
 use App\Models\Local;
 use App\Models\RoomReservation;
 use App\Models\User;
@@ -104,17 +105,9 @@ class TimetableBuilder extends Page implements HasForms
 
     public function mount(): void
     {
-        $this->departmentId = Department::query()->value('id');
+        $this->departmentId = Department::query()->orderBy('name')->value('id');
         $this->academicTermId = AcademicTerm::current()->value('id') ?? AcademicTerm::query()->orderByDesc('start_date')->value('id');
         $this->form->fill();
-    }
-
-    /**
-     * @return Collection<int, Department>
-     */
-    public function departments(): Collection
-    {
-        return Department::query()->orderBy('name')->get();
     }
 
     /**
@@ -123,6 +116,39 @@ class TimetableBuilder extends Page implements HasForms
     public function academicTerms(): Collection
     {
         return AcademicTerm::query()->orderByDesc('start_date')->get();
+    }
+
+    /**
+     * "Academic Structure" sidebar tree — faculties with the departments
+     * under them (Department is FacultyScope'd, so N2 only ever sees their
+     * own faculty here; A3/N3 see all). Ported from the legacy app's
+     * faculty→department navigation panel (ReservationsView.tsx), used here
+     * as the department-picker instead of duplicating a plain <select> for
+     * the same choice.
+     *
+     * @return Collection<int, Faculty>
+     */
+    public function academicStructure(): Collection
+    {
+        return Faculty::query()
+            ->whereHas('departments')
+            ->with(['departments' => fn ($query) => $query->orderBy('name')])
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function selectDepartment(int $departmentId): void
+    {
+        $this->departmentId = $departmentId;
+    }
+
+    public function currentDepartment(): ?Department
+    {
+        if ($this->departmentId === null) {
+            return null;
+        }
+
+        return Department::query()->with('faculty')->find($this->departmentId);
     }
 
     public function form(Schema $schema): Schema
@@ -174,6 +200,9 @@ class TimetableBuilder extends Page implements HasForms
                     ->label(__('patrimoine.fields.level'))
                     ->options(ReservationLevel::class)
                     ->required(),
+                TextInput::make('student_group')
+                    ->label(__('patrimoine.fields.student_group'))
+                    ->maxLength(255),
                 Select::make('day')
                     ->label(__('patrimoine.fields.day'))
                     ->options(collect(self::WEEK_DAYS)->pluck('label', 'dow')->all())
@@ -218,7 +247,7 @@ class TimetableBuilder extends Page implements HasForms
             ->where('academic_term_id', $this->academicTermId)
             ->where('source', ReservationSource::Timetable)
             ->where('status', ReservationStatus::Confirmed)
-            ->with(['local', 'teacher'])
+            ->with(['local.building', 'teacher'])
             ->get()
             ->unique(fn (RoomReservation $r): string => $r->recurring_group_id ?? (string) $r->id);
 
@@ -277,6 +306,7 @@ class TimetableBuilder extends Page implements HasForms
             'teacher_user_id' => $data['teacher_user_id'],
             'module_name' => $data['module_name'],
             'level' => $data['level'],
+            'student_group' => $data['student_group'],
             'department_id' => $this->departmentId,
             'source' => ReservationSource::Timetable,
             'status' => ReservationStatus::Confirmed,

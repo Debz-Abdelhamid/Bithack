@@ -3,6 +3,140 @@
 All notable changes to the PUI-UBMA R13 Patrimoine module.
 Format: one entry per phase (see `Phases.md`), Conventional-Commit-style categories.
 
+## Phase 7 — Maintenance ticket workflow & SLA engine (2026-07-08)
+
+### Added
+- `interventions` (Schema.md §2.9): nullable `technician_id` (a plain `users` row belonging
+  to Service technique, no dedicated role), `scheduled_at`/`completed_at`, `report`, `cost`,
+  its own `InterventionStatus` (independent of the parent ticket's status).
+- `TicketStatus` gets a real state machine: `canTransitionTo()`/`next()` implement the linear
+  `new → assigned → in_progress → resolved → closed` chain (matching both Phases.md's column
+  order and the legacy `TicketDetailView.tsx`'s own `NEXT_STATUS` map, read before building),
+  plus `cancelled` as a side branch reachable from any non-terminal status. `TicketWorkflowService`
+  is the *only* place a ticket's status is ever written — the Kanban board's drag and the
+  ticket page's "Advance status"/"Cancel ticket" actions both call it, so a drag can never
+  bypass a rule a manual change would enforce. The plain Edit form's `status` field is disabled
+  after creation for the same reason (helper text points to the board/actions instead).
+- `MaintenanceBoard`: a custom Filament Page, native HTML5 drag-and-drop (Alpine
+  `x-on:dragstart`/`dragover`/`drop`), 5 columns (`TicketStatus::boardColumns()`, `cancelled`
+  excluded — still visible in the plain resource table). Cards show reference, priority badge,
+  asset/room, SLA countdown or overdue flag, assigned technician. Drag-affordance and the move
+  itself are both gated on `Update:MaintenanceTicket`.
+- `InterventionsRelationManager` on `MaintenanceTicketResource`: A3 assigns technician/schedule
+  (full CRUD); the assigned technician later logs their own report/cost/completion via a new
+  `logWork` policy ability that compares `technician_id` to the acting user, not a role check
+  (`Claude.md` §4 — policies read permissions/data, never `hasRole()`).
+- `patrimo:escalate-tickets` (new `scheduler` Docker service running `schedule:work`, every 15
+  minutes — the project's first scheduled job): notifies A3 + the ticket's routed N2 once per
+  ticket (`maintenance_tickets.escalated_at` idempotency guard) when a ticket is ≥80% through
+  its SLA window or past it. The "80% elapsed" check runs in PHP, not SQL — `sla_due_at -
+  created_at` interval arithmetic isn't portable between Postgres and the sqlite test driver.
+- Queued `SendTicketNotification` to a technician when assigned to an intervention.
+- RBAC: Service technique moves from Phase 6's read-only to real write access — `Update:
+  MaintenanceTicket` (drag/advance a ticket) and `LogWork:Intervention` (their own assignments
+  only). A3 keeps full intervention CRUD.
+- 15 new Pest tests (162 total): state-machine transitions (valid + rejected, including the
+  no-reopen-after-closed rule), Kanban drag success/permission-denied/invalid-move, intervention
+  assignment + technician notification, `logWork` scoping (own vs. someone else's), SLA
+  escalation (breached, approaching-but-not-breached, and the resolved/closed/cancelled
+  exclusion), idempotent re-run.
+
+### Fixed (flagged, not guessed)
+- Phases.md asks to evaluate `mokhosh/filament-kanban` before building custom — it requires
+  Filament `^3.0`, no official v4 support (this app's version); only an unofficial third-party
+  fork claims v4 compatibility. Read the legacy board's actual source (`TicketsBoardView.tsx`)
+  rather than assume — it turned out to be plain native HTML5 drag-and-drop with no client
+  library at all, so building custom lost nothing of substance versus depending on an
+  unofficial fork for a security-sensitive university system.
+- Two Filament testing gotchas hit while writing tests, worth remembering: (1) a policy method
+  written for a *specific record* (`update(AuthUser $user, Model $record)`) breaks with "too
+  few arguments" if called with a class-string subject instead of an instance (`can('update',
+  SomeModel::class)`) — that call shape routes to a method taking only the user, like
+  `create()`; a general "can this role update anything of this class" check needs the raw
+  permission string, not the per-record policy method. (2) A relation manager's table header
+  action (e.g. `CreateAction`) must be tested with `callTableAction()`/
+  `assertHasNoTableActionErrors()`, not the generic `callAction()`/`assertHasNoActionErrors()`
+  — the latter looks in the wrong action registry and reports the action as simply not
+  existing, which reads like a permissions bug but isn't one.
+
+## Phase 6 — Anomaly reporting → automatic ticket creation (2026-07-07)
+
+### Added
+- `maintenance_tickets` (Schema.md §2.8): `equipment_id`/`local_id` nullable subject pair with
+  the same "at least one required" CHECK constraint pattern as `assignments`; a new `reference`
+  column (`TCK-YYYY-NNNNN`, same auto-generation pattern as `equipments.inventory_code`) not in
+  the original table sketch; `category` made nullable (documented divergence — see below).
+  `TicketSource`/`TicketPriority`/`TicketStatus` enums, the last driving Phase 7's future
+  Kanban columns.
+- `MaintenanceTicketObserver`: computes `sla_due_at` at creation (`+48h` urgent / `+5 business
+  days` standard, skipping Friday — Schema.md §4), assigns the reference, and auto-fills
+  `assigned_service_id` from the equipment's current active assignment when left blank.
+- **The Phase 3 public QR lookup page grows a report form**, rather than becoming a new
+  surface: `GET /report/{token}` stays public/unauthenticated (unchanged, preserving Phase 3's
+  shipped contract) — only the new `POST /report/{token}` (`AnomalyReportController`) requires
+  a session (the app's existing `redirectGuestsTo` sends a guest straight to Filament login). A
+  guest sees the same read-only card plus a "log in to report" link instead of the form.
+- Legacy-matched duplicate-report guard: an asset with an already-open ticket shows "already
+  reported" instead of a second form (`MaintenanceTicket::hasActiveTicketFor()`).
+- New `anomaly-report` Redis rate limiter (per-user + per-QR-token), mirroring the existing
+  `qr-lookup` pattern — Security.md §5 flags this endpoint as the single most abuse-prone in
+  the module.
+- Queued `SendTicketNotification` to A3 + the routed service's `responsible_user` on creation
+  (ids/labels only, Security.md §7).
+- `MaintenanceTicketResource` (Filament): A3 full CRUD; N2 read-only + FacultyScope (via
+  equipment/local → building, the same cascading branch pattern as `Assignment`); N3 read-only
+  unscoped; Service technique read-only unscoped (no per-technician sub-scoping exists anywhere
+  in the schema yet); Enseignant/tout_utilisateur Create-only (report, no browsing) — matches
+  the role matrix's explicit "report anomalies" grant, nothing wider.
+- 18 new Pest tests (147 total): QR-scan creation + SLA/reference correctness, duplicate-report
+  guard (both directions — blocked while active, allowed again once terminal), rate limiting,
+  guest rejection, service-routing + notification, and RBAC across all six roles.
+
+### Fixed (user-caught, flagged not guessed)
+- `Schema.md`/`Phases.md` describe ticket priority as "defaulted per category rules" but never
+  specify the mapping. Direct inspection of the legacy report-submission component
+  (`ReportView.tsx`) shows it was never actually implemented there either — every QR-scan
+  report is hardcoded urgent/48h, with no category picker on the form at all. Matched the
+  legacy exactly instead of inventing a mapping; flagged in `PROGRESS.md` as an open question
+  in case the university actually wants graduated severity by category.
+- Ticket visibility for N2/N3/Service technique isn't spelled out explicitly in Security.md's
+  role matrix either — extended the same read-only + FacultyScope convention already used by
+  every other resource rather than leaving the new resource ungoverned (flagged in
+  `PROGRESS.md`, not silently assumed).
+
+## Phase 5 addendum follow-up — Timetable design fidelity (2026-07-06)
+
+### Fixed (user-caught)
+- The first `TimetableBuilder` pass ported the legacy grid's *mechanics* (6 time slots ×
+  Sat–Thu columns) but not its actual *layout*. User asked directly whether the design still
+  matched the legacy `ReservationsView.tsx` — it didn't, on three counts, now closed:
+  - **3-column layout**: added the left "Academic Structure" sidebar the legacy app has —
+    a read-only Faculty → Department tree (click a department to select it, replacing the
+    plain `<select>`), scoped by the existing `FacultyScope` so N2 only ever sees their own
+    faculty. Deliberately **not** reproduced: the legacy sidebar also inline-manages
+    specialities/class-groups/levels, which aren't R13 entities (out of scope, flagged as a
+    `TODO(confirm)` in `PROGRESS.md` rather than silently invented).
+  - **Card anatomy**: each grid card now shows a status badge, a Heroicon `user-group` line
+    (`level · student_group` — `student_group` is now collected on the grid's own form; the
+    column already existed on `room_reservations` but wasn't wired to this page), a
+    Heroicon `user` line (teacher), and a Heroicon `map-pin` line (room code · building
+    name), matching the legacy card's icon rows instead of three bare lines of text.
+  - **Status legend footer**: added, but intentionally shows only **Confirmed** — the
+    legend's other two legacy states (Pending/Changed) can never appear here, since
+    `TimetableBuilder`'s query only ever returns confirmed rows by construction (ad-hoc
+    pending requests live on the separate `RequestReservation` page). Copying the legacy's
+    3-dot legend verbatim would have shipped two permanently-dead states.
+- `Faculty` was missing a `departments()` relation (needed for the new sidebar's
+  Faculty→Department grouping) — added alongside the existing `services()`/`users()`
+  relations.
+- Caught while verifying visually: new Tailwind utility classes referenced in the blade file
+  didn't render until `npm run build` re-ran — the compiled `public/build` asset bundle was
+  stale from before this change. Not a code bug, but a build-step trap worth remembering for
+  any future blade-only visual change in this stack.
+- 3 new assertions added to the existing grid-placement Pest test, asserting the sidebar,
+  department name, and legend text actually render (was previously only asserting the card's
+  module name).
+
 ## Phase 5 addendum — Departments, academic terms, visual timetable grid (2026-07-06)
 
 ### Fixed (user-caught, before it shipped further)

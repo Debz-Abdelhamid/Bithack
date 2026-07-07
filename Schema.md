@@ -203,16 +203,22 @@ it to pick a term when filling/reviewing a timetable.
 | Column | Type | Notes |
 |---|---|---|
 | id | bigint pk | |
+| reference | string, unique | **Phase 6 addition** — human-readable `TCK-YYYY-NNNNN` display code, same auto-generation pattern as `equipments.inventory_code` (`MaintenanceTicketObserver`) |
 | equipment_id | fk → equipments, nullable | |
-| local_id | fk → locals, nullable | ticket can target a room (e.g. leak) without one specific asset |
+| local_id | fk → locals, nullable | ticket can target a room (e.g. leak) without one specific asset; CHECK constraint mirrors `assignments`' subject-required pattern (at least one of the two) |
 | reported_by_user_id | fk → users | |
 | source | enum: `qr_scan, manual, auto` | Étape 4 — "scan QR → ticket auto" |
 | description | text | |
 | priority | enum: `urgent, standard` | drives SLA |
-| sla_due_at | timestamp | computed at creation: `+48h` urgent / `+5j` standard |
-| category | string | electrique, plomberie, informatique, mobilier… |
+| sla_due_at | timestamp | computed at creation: `+48h` urgent / `+5j` standard (business-day arithmetic currently only skips Friday — the full holiday calendar is §6 open question #1) |
+| category | string, **nullable** (Phase 6 divergence) | electrique, plomberie, informatique, mobilier… — nullable because the legacy report form (`ReportView.tsx`) never collected one for QR-scan reports; `manual` tickets may still set it |
 | status | enum: `new, assigned, in_progress, resolved, closed, cancelled` | drives the drag‑and‑drop Kanban board columns in the UI — see `ui-design.md` §5/§6 |
-| assigned_service_id | fk → services, nullable | routes to "Service technique" |
+| assigned_service_id | fk → services, nullable | routes to "Service technique" — Phase 6 auto-fills this from the equipment's current active assignment's `service_id` when left blank, else A3 triages manually |
+| escalated_at | timestamp, nullable | **Phase 7 addition** — idempotency guard for the SLA-escalation scheduled job (`patrimo:escalate-tickets`): set once a ticket is first notified as approaching/breaching SLA, so the every-15-minutes scheduler tick never re-notifies the same ticket |
+
+**Phase 6 note (2026-07-07):** priority is **always `urgent`** for `source = qr_scan` — the legacy report form never offered a category picker and hardcoded every QR-scan report as urgent/48h SLA (confirmed by direct inspection of `ReportView.tsx`, not guessed). `category` therefore stays a plain classification/routing field on this table, not a priority driver — a category→priority mapping is described informally in `Phases.md`/this section's earlier draft but was never actually implemented anywhere, including the legacy app. Flagged rather than invented; revisit if the university actually wants graduated severity by category.
+
+**Phase 7 note (2026-07-08):** `status`'s transitions are a real state machine (`TicketStatus::canTransitionTo()`), not ad-hoc string checks — linear `new → assigned → in_progress → resolved → closed` (matching both this column order and the legacy `TicketDetailView.tsx`'s own `NEXT_STATUS` map), plus `cancelled` reachable from any non-terminal status as a side branch. One service (`TicketWorkflowService`) is the only place a ticket's status is ever written, so the Kanban drag and a manual status-change action can never drift apart.
 
 ### 2.9 `interventions`
 | Column | Type | Notes |
@@ -223,7 +229,7 @@ it to pick a term when filling/reviewing a timetable.
 | scheduled_at / completed_at | timestamp, nullable | |
 | report | text, nullable | compte‑rendu |
 | cost | decimal(12,2), nullable | feeds `maintenance_budgets` |
-| status | enum: `planned, in_progress, done, cancelled` | |
+| status | enum: `planned, in_progress, done, cancelled` | independent from the parent ticket's own status |
 
 ### 2.10 `reception_reports` (PV de réception)
 | Column | Type | Notes |

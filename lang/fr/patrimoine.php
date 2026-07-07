@@ -55,6 +55,14 @@ return [
             'label' => 'Semestre académique',
             'plural' => 'Semestres académiques',
         ],
+        'maintenance_ticket' => [
+            'label' => 'Ticket de maintenance',
+            'plural' => 'Tickets de maintenance',
+        ],
+        'intervention' => [
+            'label' => 'Intervention',
+            'plural' => 'Interventions',
+        ],
     ],
 
     'sections' => [
@@ -68,6 +76,8 @@ return [
         'reservation_slot' => 'Local & enseignant',
         'reservation_course' => 'Cours',
         'reservation_period' => 'Période',
+        'ticket_subject' => 'Élément concerné',
+        'ticket_details' => 'Détails',
     ],
 
     'validation' => [
@@ -185,6 +195,22 @@ return [
         'day' => 'Jour',
         'time_slot' => 'Créneau horaire',
         'request_department_help' => 'Facultatif — le département concerné par ce cours, le cas échéant.',
+        'reference' => 'Référence',
+        'equipment' => 'Équipement',
+        'no_equipment' => 'Aucun équipement spécifique',
+        'unassigned' => 'Non attribué',
+        'assigned_service' => 'Acheminé vers le service',
+        'sla_due_at' => 'Échéance SLA',
+        'reported_by' => 'Signalé par',
+        'priority' => 'Priorité',
+        'description' => 'Description',
+        'ticket_local_help' => 'Utile seulement quand le ticket concerne un local sans bien spécifique (ex. une fuite).',
+        'technician' => 'Technicien',
+        'scheduled_at' => 'Planifié pour',
+        'completed_at' => 'Terminé le',
+        'cost' => 'Coût',
+        'report' => 'Compte-rendu',
+        'status_change_help' => 'Changez le statut depuis la fiche du ticket ou le tableau de maintenance — non modifiable ici, pour toujours passer par les règles du workflow.',
     ],
 
     'reservation_sources' => [
@@ -248,6 +274,10 @@ return [
         'slot_cancelled' => 'Créneau annulé.',
         'cancel_confirm' => 'Annuler ce créneau récurrent pour tout le semestre ?',
         'missing_context' => 'Sélectionnez d\'abord un département et un semestre académique.',
+        'academic_structure' => 'Structure académique',
+        'academic_structure_hint' => 'Sélectionnez un département pour remplir son emploi du temps.',
+        'no_departments' => 'Aucun département pour le moment.',
+        'legend_confirmed' => 'Confirmé — les créneaux de l\'emploi du temps sont verrouillés dès leur création.',
     ],
 
     'week_days' => [
@@ -312,8 +342,64 @@ return [
         'missing' => 'Aucun code QR — cette fiche est antérieure à la génération QR. Contactez un administrateur.',
     ],
 
-    'lookup' => [
-        'report_hint' => 'Pour signaler un problème sur ce bien, contactez le service patrimoine. Le signalement en ligne depuis cette page arrive bientôt.',
+    'ticket_sources' => [
+        'qr_scan' => 'Scan QR',
+        'manual' => 'Saisie manuelle',
+        'auto' => 'Automatique',
+    ],
+
+    'ticket_priorities' => [
+        'urgent' => 'Urgent',
+        'standard' => 'Standard',
+    ],
+
+    'ticket_statuses' => [
+        'new' => 'Nouveau',
+        'assigned' => 'Attribué',
+        'in_progress' => 'En cours',
+        'resolved' => 'Résolu',
+        'closed' => 'Clôturé',
+        'cancelled' => 'Annulé',
+    ],
+
+    'intervention_statuses' => [
+        'planned' => 'Planifiée',
+        'in_progress' => 'En cours',
+        'done' => 'Terminée',
+        'cancelled' => 'Annulée',
+    ],
+
+    'tickets' => [
+        'notif_new_title' => 'Nouveau ticket de maintenance',
+        'notif_new_body' => 'Le ticket :reference vient d\'être créé et nécessite un tri.',
+        'notif_assigned_title' => 'Intervention qui vous a été assignée',
+        'notif_assigned_body' => 'Vous avez été assigné au ticket :reference.',
+        'notif_breached_title' => 'SLA dépassé',
+        'notif_approaching_title' => 'SLA bientôt dépassé',
+        'notif_escalation_body' => 'Le ticket :reference nécessite votre attention — son échéance SLA est proche ou dépassée.',
+        'invalid_transition' => 'Impossible de faire passer un ticket de « :from » à « :to » — cette transition n\'est pas autorisée.',
+    ],
+
+    'board' => [
+        'nav_label' => 'Tableau de maintenance',
+        'title' => 'Tableau de maintenance',
+        'moved' => 'Déplacé vers :status.',
+        'overdue' => 'En retard',
+        'no_tickets' => 'Aucun ticket.',
+        'advance' => 'Faire avancer le statut',
+        'advance_to' => 'Faire avancer vers :status',
+        'cancel_ticket' => 'Annuler le ticket',
+    ],
+
+    'report' => [
+        'title' => 'Signaler un problème',
+        'urgent_notice' => 'Ce signalement créera un ticket de maintenance urgent, traité sous 48 heures.',
+        'description_placeholder' => 'Décrivez le problème sur ce bien. Soyez le plus précis possible…',
+        'submit' => 'Envoyer le signalement',
+        'submitted' => 'Problème signalé — référence du ticket :reference. Il sera traité sous 48 heures.',
+        'already_reported' => 'Ce bien a déjà un ticket actif en cours de traitement. Inutile de signaler à nouveau.',
+        'login_hint' => 'Connectez-vous pour signaler un problème sur ce bien.',
+        'login_cta' => 'Se connecter pour signaler',
     ],
 
     'campus_map' => [

@@ -55,6 +55,14 @@ return [
             'label' => 'Academic term',
             'plural' => 'Academic terms',
         ],
+        'maintenance_ticket' => [
+            'label' => 'Maintenance ticket',
+            'plural' => 'Maintenance tickets',
+        ],
+        'intervention' => [
+            'label' => 'Intervention',
+            'plural' => 'Interventions',
+        ],
     ],
 
     'sections' => [
@@ -68,6 +76,8 @@ return [
         'reservation_slot' => 'Room & teacher',
         'reservation_course' => 'Course',
         'reservation_period' => 'Period',
+        'ticket_subject' => 'What is affected',
+        'ticket_details' => 'Details',
     ],
 
     'validation' => [
@@ -185,6 +195,22 @@ return [
         'day' => 'Day',
         'time_slot' => 'Time slot',
         'request_department_help' => 'Optional — the department this course belongs to, if applicable.',
+        'reference' => 'Reference',
+        'equipment' => 'Equipment',
+        'no_equipment' => 'No specific equipment',
+        'unassigned' => 'Unassigned',
+        'assigned_service' => 'Routed to service',
+        'sla_due_at' => 'SLA due',
+        'reported_by' => 'Reported by',
+        'priority' => 'Priority',
+        'description' => 'Description',
+        'ticket_local_help' => 'Only needed when the ticket targets a room without one specific asset (e.g. a leak).',
+        'technician' => 'Technician',
+        'scheduled_at' => 'Scheduled for',
+        'completed_at' => 'Completed at',
+        'cost' => 'Cost',
+        'report' => 'Report',
+        'status_change_help' => 'Change status from the ticket page or the Maintenance board — not editable here, so it always goes through the workflow rules.',
     ],
 
     'reservation_sources' => [
@@ -248,6 +274,10 @@ return [
         'slot_cancelled' => 'Slot cancelled.',
         'cancel_confirm' => 'Cancel this recurring slot for the whole term?',
         'missing_context' => 'Select a department and an academic term first.',
+        'academic_structure' => 'Academic Structure',
+        'academic_structure_hint' => 'Select a department to fill its timetable.',
+        'no_departments' => 'No departments yet.',
+        'legend_confirmed' => 'Confirmed — timetable slots are locked in immediately.',
     ],
 
     'week_days' => [
@@ -312,8 +342,64 @@ return [
         'missing' => 'No QR code — this record predates QR generation. Contact an administrator.',
     ],
 
-    'lookup' => [
-        'report_hint' => 'To report an issue with this asset, please contact the facilities department. Online reporting from this page is coming soon.',
+    'ticket_sources' => [
+        'qr_scan' => 'QR scan',
+        'manual' => 'Manual entry',
+        'auto' => 'Automated',
+    ],
+
+    'ticket_priorities' => [
+        'urgent' => 'Urgent',
+        'standard' => 'Standard',
+    ],
+
+    'ticket_statuses' => [
+        'new' => 'New',
+        'assigned' => 'Assigned',
+        'in_progress' => 'In progress',
+        'resolved' => 'Resolved',
+        'closed' => 'Closed',
+        'cancelled' => 'Cancelled',
+    ],
+
+    'intervention_statuses' => [
+        'planned' => 'Planned',
+        'in_progress' => 'In progress',
+        'done' => 'Done',
+        'cancelled' => 'Cancelled',
+    ],
+
+    'tickets' => [
+        'notif_new_title' => 'New maintenance ticket',
+        'notif_new_body' => 'Ticket :reference was just created and needs triage.',
+        'notif_assigned_title' => 'Intervention assigned to you',
+        'notif_assigned_body' => 'You have been assigned to work on ticket :reference.',
+        'notif_breached_title' => 'SLA breached',
+        'notif_approaching_title' => 'SLA approaching',
+        'notif_escalation_body' => 'Ticket :reference needs attention — its SLA deadline is close or has passed.',
+        'invalid_transition' => 'Cannot move a ticket from ":from" to ":to" — that transition is not allowed.',
+    ],
+
+    'board' => [
+        'nav_label' => 'Maintenance board',
+        'title' => 'Maintenance board',
+        'moved' => 'Moved to :status.',
+        'overdue' => 'Overdue',
+        'no_tickets' => 'No tickets.',
+        'advance' => 'Advance status',
+        'advance_to' => 'Advance to :status',
+        'cancel_ticket' => 'Cancel ticket',
+    ],
+
+    'report' => [
+        'title' => 'Report an issue',
+        'urgent_notice' => 'This report will be created as an urgent maintenance ticket and processed within 48 hours.',
+        'description_placeholder' => 'Describe what is wrong with this asset. Be as specific as possible…',
+        'submit' => 'Submit report',
+        'submitted' => 'Issue reported — ticket reference :reference. It will be addressed within 48 hours.',
+        'already_reported' => 'This asset already has an active ticket being processed. No need to report again.',
+        'login_hint' => 'Sign in to report an issue with this asset.',
+        'login_cta' => 'Log in to report',
     ],
 
     'campus_map' => [

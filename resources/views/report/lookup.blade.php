@@ -83,6 +83,54 @@
             line-height: 18px;
             color: #64748b;
         }
+        .report-panel {
+            margin: 20px 0 0;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .report-panel h2 {
+            margin: 0 0 8px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .notice {
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 12.5px;
+            line-height: 18px;
+        }
+        .notice-warning { background: #fffbeb; color: #92400e; }
+        .notice-success { background: #f0fdfa; color: #0f5f5a; }
+        .notice-error { background: #fef2f2; color: #b91c1c; }
+        textarea {
+            width: 100%;
+            min-height: 90px;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 13px;
+            resize: vertical;
+        }
+        .btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 16px;
+            background: #0f766e;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .ref-code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -113,7 +161,32 @@
             </dd>
         </dl>
 
-        <p class="hint">{{ __('patrimoine.lookup.report_hint') }}</p>
+        <div class="report-panel">
+            <h2>{{ __('patrimoine.report.title') }}</h2>
+
+            @if (session('anomaly_report_reference'))
+                <div class="notice notice-success">
+                    {!! __('patrimoine.report.submitted', ['reference' => '<span class="ref-code">'.session('anomaly_report_reference').'</span>']) !!}
+                </div>
+            @elseif (session('anomaly_report_error'))
+                <div class="notice notice-error">{{ session('anomaly_report_error') }}</div>
+            @elseif ($alreadyReported)
+                <div class="notice notice-warning">{{ __('patrimoine.report.already_reported') }}</div>
+            @elseif (auth()->check())
+                @error('description')
+                    <div class="notice notice-error">{{ $message }}</div>
+                @enderror
+                <form method="POST" action="{{ route('report.store', ['token' => $token]) }}">
+                    @csrf
+                    <div class="notice notice-warning">{{ __('patrimoine.report.urgent_notice') }}</div>
+                    <textarea name="description" placeholder="{{ __('patrimoine.report.description_placeholder') }}" required minlength="5" maxlength="2000">{{ old('description') }}</textarea>
+                    <button type="submit" class="btn">{{ __('patrimoine.report.submit') }}</button>
+                </form>
+            @else
+                <p class="hint" style="margin:0 0 10px;padding:0;border:0;">{{ __('patrimoine.report.login_hint') }}</p>
+                <a class="btn" href="{{ route('filament.admin.auth.login') }}">{{ __('patrimoine.report.login_cta') }}</a>
+            @endif
+        </div>
     </main>
 </body>
 </html>

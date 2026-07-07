@@ -37,6 +37,14 @@ class Faculty extends Model
         return $this->hasMany(User::class);
     }
 
+    /**
+     * @return HasMany<Department, $this>
+     */
+    public function departments(): HasMany
+    {
+        return $this->hasMany(Department::class);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

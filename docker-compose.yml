@@ -63,6 +63,25 @@ services:
       - internal
     restart: unless-stopped
 
+  # Laravel's scheduler (SLA escalation, routes/console.php) — schedule:work
+  # blocks and fires due jobs itself, no host cron needed (Phases.md Phase 7).
+  scheduler:
+    build:
+      context: ./docker/php
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+      - node_modules:/var/www/html/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: unless-stopped
+
   # Daily pg_dump into ./storage/backups (Security.md §7 — a patrimoine
   # registry losing data is an institutional risk). Restore procedure in
   # README; keeps 7 daily / 4 weekly / 6 monthly dumps.

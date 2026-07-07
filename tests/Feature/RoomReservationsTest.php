@@ -702,7 +702,10 @@ it('places an existing confirmed slot in the correct grid cell', function (): vo
     Livewire::test(TimetableBuilder::class)
         ->set('departmentId', $this->techDepartment->id)
         ->set('academicTermId', $this->term->id)
-        ->assertSee('Grid Slot Course');
+        ->assertSee('Grid Slot Course')
+        ->assertSee($this->techDepartment->name)
+        ->assertSee(__('patrimoine.timetable.academic_structure'))
+        ->assertSee(__('patrimoine.timetable.legend_confirmed'));
 });
 
 it('adds a weekly slot from the grid, bounded by the term end date', function (): void {

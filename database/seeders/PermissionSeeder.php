@@ -28,7 +28,7 @@ class PermissionSeeder extends Seeder
 
         $fullPatrimoine = [];
 
-        foreach (['Building', 'Local', 'Equipment', 'PurchaseReference', 'Assignment', 'RoomReservation', 'Department', 'AcademicTerm'] as $model) {
+        foreach (['Building', 'Local', 'Equipment', 'PurchaseReference', 'Assignment', 'RoomReservation', 'Department', 'AcademicTerm', 'MaintenanceTicket', 'Intervention'] as $model) {
             foreach (self::RESOURCE_METHODS as $method) {
                 $fullPatrimoine[] = Permission::findOrCreate("{$method}:{$model}", 'web')->name;
             }
@@ -51,6 +51,12 @@ class PermissionSeeder extends Seeder
         $approveReservation = Permission::findOrCreate('Approve:RoomReservation', 'web')->name;
         $cancelReservation = Permission::findOrCreate('Cancel:RoomReservation', 'web')->name;
 
+        // Phase 7 — a Service technique member logs report/cost/completion
+        // only on interventions they're assigned to (InterventionPolicy::
+        // logWork() compares technician_id, this permission is just the
+        // gate that the ability exists for the role at all).
+        $logWork = Permission::findOrCreate('LogWork:Intervention', 'web')->name;
+
         // Escape hatch for a future faculty-affiliated-but-global user
         // (FacultyScope) — exists as data, granted to nobody by default.
         Permission::findOrCreate('ViewAcrossFaculties', 'web');
@@ -67,6 +73,14 @@ class PermissionSeeder extends Seeder
             // — N2 needs to read it to pick a term when filling their
             // department's timetable, but never manages it.
             'ViewAny:AcademicTerm', 'View:AcademicTerm',
+            // N2/N3 oversight per the general "query scoping (N2 sees only
+            // their faculty's data)" enforcement rule (Security.md §3) —
+            // the matrix doesn't spell out ticket visibility explicitly for
+            // either role, so this follows the same read-only pattern
+            // already applied to every other resource rather than a new
+            // invented rule (flagged in PROGRESS.md).
+            'ViewAny:MaintenanceTicket', 'View:MaintenanceTicket',
+            'ViewAny:Intervention', 'View:Intervention',
         ];
 
         // N2 administers affectations inside their faculty (matrix:
@@ -107,20 +121,35 @@ class PermissionSeeder extends Seeder
         Role::findByName(RoleName::RECTORAT, 'web')
             ->givePermissionTo([...$readOnlyPatrimoine, $campusMap, $reservationAvailability]);
 
-        // Everyone may look at the campus map — the physical campus is public.
-        Role::findByName(RoleName::SERVICE_TECHNIQUE, 'web')->givePermissionTo($campusMap);
+        // Service technique — campus map, ticket visibility, and (Phase 7)
+        // real workflow actions (matrix: "plans and carries out
+        // interventions on tickets"): can move a ticket through the Kanban
+        // board (Update:MaintenanceTicket — the same permission gates both
+        // the drag and a manual status change, TicketWorkflowService is the
+        // single enforcement point either way) and log their own work on
+        // an intervention they're assigned to (LogWork, scoped by
+        // technician_id in the policy, not a DB scope — no dedicated
+        // technician sub-team model exists, Schema.md §2.9).
+        Role::findByName(RoleName::SERVICE_TECHNIQUE, 'web')->givePermissionTo([
+            $campusMap, 'ViewAny:MaintenanceTicket', 'View:MaintenanceTicket', 'Update:MaintenanceTicket',
+            'ViewAny:Intervention', 'View:Intervention', $logWork,
+        ]);
 
         // Enseignant — the only ad-hoc request-initiator role (matrix): no
         // admin-resource browsing (no ViewAny/View:RoomReservation), just
         // the ability to create a `request` row, cancel their own, and see
-        // the read-only availability grid before requesting.
+        // the read-only availability grid before requesting. Also reports
+        // anomalies (matrix: "report anomalies") — Create only, no
+        // browsing of the ticket resource itself.
         Role::findByName(RoleName::ENSEIGNANT, 'web')->givePermissionTo([
             $campusMap, $reservationAvailability, 'Create:RoomReservation', $cancelReservation,
+            'Create:MaintenanceTicket',
         ]);
 
         // Tout utilisateur — read-only timetable/availability per the
-        // matrix; booking initiation removed 2026-07-04.
+        // matrix; booking initiation removed 2026-07-04. Reports anomalies
+        // via QR scan (matrix), same Create-only shape as Enseignant.
         Role::findByName(RoleName::TOUT_UTILISATEUR, 'web')
-            ->givePermissionTo([$campusMap, $reservationAvailability]);
+            ->givePermissionTo([$campusMap, $reservationAvailability, 'Create:MaintenanceTicket']);
     }
 }

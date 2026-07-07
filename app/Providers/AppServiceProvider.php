@@ -78,6 +78,19 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(10)->by('qr-lookup:token:'.$request->ip().':'.$token),
             ];
         });
+
+        // Anomaly-report submission (Phases.md Phase 6) — same abuse
+        // profile as qr-lookup, plus a per-user cap since this endpoint
+        // requires auth: per-user overall, and per-token so one asset
+        // can't be flooded with repeat reports either.
+        RateLimiter::for('anomaly-report', function (Request $request): array {
+            $token = (string) $request->route('token');
+
+            return [
+                Limit::perMinute(10)->by('anomaly-report:user:'.$request->user()?->getAuthIdentifier()),
+                Limit::perMinute(5)->by('anomaly-report:token:'.$token),
+            ];
+        });
     }
 
     /**
